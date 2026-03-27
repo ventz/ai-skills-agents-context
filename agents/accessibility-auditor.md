@@ -120,6 +120,14 @@ Tier 6: Advanced & Edge Cases
 - Viewport meta blocking zoom (`user-scalable=no` or `maximum-scale < 2`) — SC 1.4.4
 - Video content with no captions — SC 1.2.2
 - Focus order completely broken (content unreachable by keyboard) — SC 2.1.1
+- Content flashing more than 3 times per second without being below general/red flash thresholds — SC 2.3.1
+- Time limits without ability to turn off, adjust, or extend (e.g., session timeout, auto-redirect) — SC 2.2.1
+- Auto-moving, blinking, scrolling, or auto-updating content without pause/stop/hide mechanism — SC 2.2.2
+- Empty interactive elements with no accessible name (`<button></button>`, `<a href></a>` with no text) — SC 4.1.2, 2.4.4
+- `role="img"` element without accessible name (`aria-label` or `aria-labelledby`) — SC 1.1.1
+- `<button>`/`<a>` containing only `<svg>` with no accessible name on either the parent or the SVG — SC 4.1.2, 1.1.1
+- CAPTCHA without accessible alternative (audio CAPTCHA, object recognition, or passkey) — SC 3.3.8
+- `<marquee>` or `<blink>` elements (deprecated but still rendered) — SC 2.2.2
 
 **High** (Significant barrier — tasks possible but with extreme difficulty):
 - Insufficient text color contrast (below 4.5:1 normal text, 3:1 large text) — SC 1.4.3
@@ -132,10 +140,33 @@ Tier 6: Advanced & Edge Cases
 - Required fields with no programmatic indication — SC 3.3.2
 - Custom widgets missing required ARIA children (e.g., tablist without tab) — SC 4.1.2
 - Non-text contrast below 3:1 for UI components — SC 1.4.11
+- Hover/focus content not dismissible (no Escape), not hoverable, or not persistent — SC 1.4.13
+- Focused element completely obscured by author-created content (sticky headers, cookie banners, chat widgets) — SC 2.4.11 (WCAG 2.2)
+- Text spacing override causes content loss (fixed-height containers with `overflow: hidden` clipping text) — SC 1.4.12
+- Content restricted to single display orientation without essential reason — SC 1.3.4
+- Accessible name does not contain the visible text label — SC 2.5.3
+- Drag functionality with no single-pointer alternative (buttons, select) — SC 2.5.7 (WCAG 2.2)
+- Auth requiring cognitive function test without alternative (paste blocked, `autocomplete="off"` on passwords) — SC 3.3.8 (WCAG 2.2)
+- Single-character key shortcuts with no mechanism to remap, disable, or limit to focus — SC 2.1.4
+- Multipoint or path-based gestures (pinch, swipe, draw) without single-pointer alternative — SC 2.5.1
+- CSS reordering (flexbox `order`, `row-reverse`, grid placement) breaking meaningful DOM sequence — SC 1.3.2
+- On-focus context change (focus triggers navigation, form submission, or new window) — SC 3.2.1
+- Scrollable regions (`overflow: auto/scroll`) on non-focusable elements without `tabindex="0"` — SC 2.1.1
+- UI elements invisible in Windows High Contrast Mode / `forced-colors` (box-shadow borders, background-image content) — SC 1.4.11
+- Informational `<svg>` without `role="img"` and accessible name (`aria-label`/`aria-labelledby`) — SC 1.1.1
+- `contenteditable` elements without `role="textbox"` and `aria-multiline="true"` — SC 4.1.2
+- `role="application"` on containers with regular text content (breaks screen reader browse mode) — SC 4.1.2
+- Duplicate `id` attributes breaking `aria-labelledby`/`aria-describedby`/`for` references — SC 4.1.2
+- `autocomplete="off"` on password fields (blocks password managers) — SC 3.3.8
+- Paste prevention on authentication fields (`onpaste="return false"`) — SC 3.3.8
+- `DeviceMotionEvent`/`DeviceOrientationEvent` handlers without UI button alternative — SC 2.5.4
+- Global focus suppression (`* { outline: none }` or `*:focus { outline: 0 }`) without replacement — SC 2.4.7
+- Data tables with `<th>` without `scope` attribute in complex tables — SC 1.3.1
+- Multi-level table headers without `headers`/`id` associations — SC 1.3.1
 
 **Medium** (Moderate friction — usable but degraded experience):
 - Decorative images with non-empty alt text (noise for screen readers) — SC 1.1.1
-- Missing or insufficient visible focus indicator — SC 2.4.7
+- Missing or insufficient visible focus indicator (single-element, non-global) — SC 2.4.7
 - Content reflow issues at 400% zoom — SC 1.4.10
 - Status messages not exposed to assistive tech (missing aria-live) — SC 4.1.3
 - Tables without proper headers — SC 1.3.1
@@ -144,19 +175,40 @@ Tier 6: Advanced & Edge Cases
 - Multiple `<nav>` landmarks without distinct labels — SC 1.3.1
 - `tabindex` values greater than 0 (disrupts natural tab order) — SC 2.4.3
 - Redundant ARIA roles (e.g., `role="button"` on `<button>`) — Best practice
-- `outline: none` or `outline: 0` without replacement focus style — SC 2.4.7
+- `outline: none` or `outline: 0` on individual elements without replacement focus style — SC 2.4.7
 - Fieldset/legend missing for radio/checkbox groups — SC 1.3.1
+- Language of parts not marked (`lang` on inline foreign text) — SC 3.1.2 (AA)
+- Images of text where actual text could achieve the same visual presentation — SC 1.4.5
+- Actions triggered on pointer down-event (`mousedown`/`pointerdown`) instead of up-event — SC 2.5.2
+- Error messages without correction suggestions when suggestions are known — SC 3.3.3
+- Legal/financial/data-modifying forms without confirmation or review step — SC 3.3.4
+- Help mechanisms in inconsistent relative positions across pages — SC 3.2.6 (WCAG 2.2)
+- Previously entered info not auto-populated in multi-step forms — SC 3.3.7 (WCAG 2.2)
+- Instructions relying solely on sensory characteristics ("click the round button", "see above") — SC 1.3.3
+- CSS `::before`/`::after` with informational `content` text (inconsistent AT exposure) — SC 1.3.1
+- `<details>` without `<summary>` (browser provides unhelpful default text) — SC 4.1.2
+- `<caption>` or `aria-label` missing on data tables — SC 1.3.1
+- Sortable table columns without `aria-sort` state — SC 4.1.2
+- `title` attribute as sole accessible name on interactive elements (unreliable AT exposure) — SC 4.1.2
+- Decorative `<svg>` without `aria-hidden="true"` and `focusable="false"` — SC 1.1.1
+- `<svg>` with `<title>` but no `aria-labelledby` referencing the title's `id` (inconsistent AT support) — SC 1.1.1
+- Empty headings (`<h1></h1>`) or headings containing only whitespace — SC 1.3.1, 2.4.6
+- `aria-live` region inserted into DOM with content already inside (won't trigger announcement) — SC 4.1.3
+- `pointer-events: none` on visible interactive elements (blocks click but still keyboard-focusable) — SC 2.1.1
+- `CSS text-overflow: ellipsis` truncating content without accessible expansion mechanism — SC 1.4.4
 
 **Low** (Minor friction or best practice):
 - Enhanced contrast not met (7:1 ratio) — SC 1.4.6 (AAA)
-- `prefers-reduced-motion` not respected — SC 2.3.3 (AAA)
+- `prefers-reduced-motion` not respected for non-dangerous animations — SC 2.3.3 (AAA)
 - `target="_blank"` links without warning — SC 3.2.5 (AAA)
-- Language of parts not marked (`lang` on inline foreign text) — SC 3.1.2 (AA)
 - Abbreviations not expanded — SC 3.1.4 (AAA)
 - Missing `<iframe>` title — SC 4.1.2
 - Redundant/unnecessary ARIA attributes
 - Missing ARIA landmarks (when semantic HTML is already correct)
 - Content structure improvements for cognitive accessibility
+- `prefers-contrast` media query absent when custom color themes are used — Best practice
+- `prefers-color-scheme` dark mode implementation without verifying contrast ratios — Best practice
+- CSS `resize: none` on textareas (prevents users from enlarging input areas) — SC 1.4.4
 
 ## Methodology
 
@@ -258,6 +310,72 @@ Follow the prioritization framework:
 47. Content not reflowable at 320px width (400% zoom) — SC 1.4.10
 48. Touch targets below 24x24 CSS pixels — SC 2.5.8 (WCAG 2.2)
 
+### SVG Accessibility
+49. Informational `<svg>` without `role="img"` and accessible name (`aria-label` or `aria-labelledby`) — SC 1.1.1
+50. `<svg>` with `<title>` but no `aria-labelledby` referencing the `<title>` element's `id` (inconsistent AT support without explicit reference) — SC 1.1.1
+51. `<button>` or `<a>` containing only `<svg>` without accessible name on parent or `aria-hidden="true"` on SVG (causes double announcement or empty label) — SC 4.1.2, 1.1.1
+52. Decorative `<svg>` without `aria-hidden="true"` and `focusable="false"` — SC 1.1.1
+53. `<img src="*.svg">` without `alt` attribute — SC 1.1.1
+54. Icon fonts (`<i class="fa fa-*">`, `<span class="material-icons">`) without `aria-hidden="true"` on icon and accessible name on parent — SC 1.1.1
+55. SVG-based charts/data visualizations (D3, Recharts, Victory) without alternative data table — SC 1.1.1
+56. Interactive SVG elements with click handlers but no keyboard handlers or `tabindex` — SC 2.1.1
+57. SVG animations (CSS or SMIL) without `@media (prefers-reduced-motion: reduce)` handling — SC 2.3.1
+58. Complex `<svg>` (many paths/shapes) without `role="img"` and `<desc>` for extended description — SC 1.1.1
+59. SVG `<text>` elements inside `aria-hidden="true"` SVGs (meaningful text content lost) — SC 1.1.1
+60. SVG charts using color alone to differentiate data series (no patterns, shapes, or labels) — SC 1.4.1
+
+### Timing & Motion
+61. `setTimeout`/`setInterval` auto-redirecting, auto-submitting, or expiring content without mechanism to turn off, adjust, or extend — SC 2.2.1
+62. `<meta http-equiv="refresh">` with auto-redirect — SC 2.2.1
+63. CSS `animation` with `animation-iteration-count: infinite` without user-accessible pause/stop control — SC 2.2.2
+64. Auto-playing carousels, sliders, tickers, or marquees without visible pause button — SC 2.2.2
+65. CSS `@keyframes` with rapid opacity/color/background-color alternation (duration < 333ms per cycle, heuristic for >3 flashes/second) — SC 2.3.1
+66. `<video>`, animated GIFs, or animated WebP without seizure/flashing analysis — SC 2.3.1 (flag for manual review)
+67. `<blink>` element or `text-decoration: blink` — SC 2.2.2
+
+### Content on Hover or Focus
+68. CSS `:hover` or `:focus` triggering `display`, `visibility`, or `opacity` changes on content without Escape key dismiss handler — SC 1.4.13
+69. Custom tooltips/popovers with `pointer-events: none` on revealed content (user cannot hover the new content) — SC 1.4.13
+70. `mouseout`/`mouseleave` immediately hiding revealed content without delay for pointer movement to the content — SC 1.4.13
+71. `title` attribute used as sole tooltip mechanism (not dismissible, not hoverable by keyboard users) — SC 1.4.13
+
+### Pointer & Gesture Input
+72. Touch event handlers implementing multipoint gestures (pinch, spread, multi-finger swipe) without single-pointer alternative — SC 2.5.1
+73. `mousedown`/`pointerdown`/`touchstart` triggering actions (navigation, submission, deletion) instead of `click`/`mouseup`/`pointerup` — SC 2.5.2
+74. `aria-label` that does not contain the visible text content of the element (e.g., visible "Submit" with `aria-label="Submit order form"`) — SC 2.5.3
+75. `DeviceMotionEvent`/`DeviceOrientationEvent` handlers (shake, tilt) without UI button alternative — SC 2.5.4
+76. `draggable="true"` or drag-and-drop libraries (react-dnd, SortableJS, @dnd-kit) without button-based alternative (arrow keys, move-to menu) — SC 2.5.7
+
+### CSS Accessibility
+77. CSS animations/transitions present without `@media (prefers-reduced-motion: reduce)` override — SC 2.3.1, 2.3.3
+78. `@media (forced-colors: active)` absent when custom styling uses `box-shadow` as borders, `background-image` for content indicators, or custom focus indicators relying on color — SC 1.4.11
+79. Fixed-height containers with `overflow: hidden` that would clip text when user overrides text spacing (line-height 1.5x, letter-spacing 0.12em, word-spacing 0.16em, paragraph spacing 2x) — SC 1.4.12
+80. Font sizes in `px` only without responsive fallbacks (`rem`/`em`), or `font-size` using `vw` units only without `calc()` minimum — SC 1.4.4
+81. CSS `order`, `flex-direction: row-reverse`/`column-reverse`, or explicit `grid-row`/`grid-column` reordering content differently from DOM source order — SC 1.3.2
+82. `* { outline: none }` or `*:focus { outline: 0 }` global focus suppression without replacement focus styles — SC 2.4.7
+83. `scroll-behavior: smooth` without `@media (prefers-reduced-motion: reduce)` override — SC 2.3.3
+84. `color: transparent` used to hide text (becomes visible in forced-colors mode) — SC 1.4.11
+85. SVG `fill`/`stroke` using hardcoded colors instead of `currentColor` (invisible in forced-colors mode) — SC 1.4.11
+
+### Authentication
+86. `<input type="password">` without `autocomplete="current-password"` or `autocomplete="new-password"` (blocks password managers) — SC 3.3.8
+87. Paste prevention on password/auth fields (`onpaste="return false"`, `addEventListener('paste', e => e.preventDefault())`) — SC 3.3.8
+88. CAPTCHA (`g-recaptcha`, hCaptcha, Cloudflare Turnstile) without accessible alternative (audio, object recognition, passkey) — SC 3.3.8
+89. OTP/verification code inputs without `autocomplete="one-time-code"` — SC 3.3.8
+
+### Additional Structural Patterns
+90. Empty interactive elements: `<button></button>`, `<a href="..."></a>` with no text content and no accessible name — SC 4.1.2, 2.4.4
+91. Duplicate `id` attributes in the same document scope (breaks `aria-labelledby`, `aria-describedby`, label `for` references) — SC 4.1.2
+92. Scrollable regions (`overflow: auto/scroll`) on non-focusable elements without `tabindex="0"` and `role="region"` with accessible name — SC 2.1.1
+93. `role="application"` on containers with regular text content (switches screen readers out of browse mode) — SC 4.1.2
+94. `title` attribute as sole accessible name on interactive elements (not reliably exposed, not keyboard accessible) — SC 4.1.2
+95. `contenteditable` elements without `role="textbox"` and `aria-multiline="true"` and accessible name — SC 4.1.2, 2.1.1
+96. `screen.orientation.lock()` or CSS `@media (orientation:)` restricting content to single orientation — SC 1.3.4
+97. Single-character keyboard shortcuts (`keydown`/`keypress` for single characters a-z, punctuation without modifier keys) with no remap/disable mechanism — SC 2.1.4
+98. `onfocus` handler triggering context change (navigation, form submission, `window.open`) — SC 3.2.1
+99. `<audio>` without adjacent transcript link — SC 1.2.1
+100. `<video>` without `<track kind="descriptions">` — SC 1.2.3, 1.2.5
+
 ## Framework-Specific Considerations
 
 **React / JSX**:
@@ -268,6 +386,10 @@ Follow the prioritization framework:
 - `dangerouslySetInnerHTML` — check for accessible markup in injected HTML
 - Conditional rendering that removes focused elements without managing focus
 - List rendering without proper key and semantic list markup
+- `createPortal`: portaled content (modals, tooltips) may break focus order and ARIA relationships
+- `React.lazy`/`Suspense`: fallback content must be accessible, focus must be managed when lazy component loads
+- `forwardRef` not used on custom components that need to receive programmatic focus
+- `useRef` focus management: verify `ref.current.focus()` called after dynamic content updates
 
 **Next.js**:
 - `<Head>` component should set meaningful `<title>` per page
@@ -275,16 +397,38 @@ Follow the prioritization framework:
 - `next/link` component: ensure accessible link text
 - App Router layouts: verify landmark structure across shared layouts
 - Server Components: ensure accessible HTML is rendered server-side
+- `loading.tsx` / `Suspense` boundaries: loading states must be announced to screen readers (`aria-busy`, `role="status"`)
+- `error.tsx` boundary: error states must be accessible with focus management
+- Server Actions: form submissions via server actions must provide accessible feedback (success/error)
+- `useRouter()` programmatic navigation must include focus management
 
 **Vue**:
 - `v-html` directive — check injected HTML for accessible markup
 - Dynamic component rendering (`<component :is>`) — verify ARIA roles
 - Transition components — ensure focus management during enter/leave
+- `<Teleport>`: same portal issues as React's `createPortal` (focus order, ARIA relationships)
+- `v-show` vs `v-if`: `v-show` uses `display: none` (removed from a11y tree), `v-if` removes from DOM — different focus management implications
+- Vue Router `afterEach` guard: verify focus management and `document.title` updates on route change
 
 **Angular**:
 - `(click)` handlers on non-interactive elements without keyboard support
 - `*ngIf` removing focused elements without focus restoration
 - CDK a11y utilities: verify proper use of `FocusTrap`, `LiveAnnouncer`, `FocusMonitor`
+- Angular Router `NavigationEnd` event: verify focus management and `Title` service updates
+- `ChangeDetectionStrategy.OnPush`: can prevent `aria-live` region updates from being detected by change detection
+- `[innerHTML]` binding: same concerns as React's `dangerouslySetInnerHTML`
+
+**Svelte / SvelteKit**:
+- `{#await}` blocks: loading/error states need accessible announcements (`aria-live`, `aria-busy`)
+- SvelteKit `afterNavigate` for focus management on route change
+- `+page.ts` / `+layout.ts`: verify dynamic page titles via `<svelte:head>`
+- Transition directives (`transition:fly`, `transition:fade`): must respect `prefers-reduced-motion`
+- `use:action` directives for focus management patterns
+
+**Astro**:
+- Island architecture: interactive islands must maintain keyboard access and focus management
+- View Transitions API: focus management during page transitions, `aria-live` announcements
+- Partial hydration: non-hydrated interactive elements remain inert — verify keyboard access
 
 **Component Libraries**:
 - Material UI / MUI: Generally accessible but verify custom overrides haven't broken ARIA
@@ -311,14 +455,26 @@ For custom widgets, verify against ARIA Authoring Practices Guide (APG) patterns
 | Widget | Required Role | Required Keyboard | Required ARIA States |
 |--------|--------------|-------------------|---------------------|
 | Dialog/Modal | `role="dialog"` + `aria-modal="true"` | Escape to close, Tab trapped inside, focus restored on close | `aria-labelledby` (title), `aria-describedby` (optional) |
+| Alert Dialog | `role="alertdialog"` + `aria-modal="true"` | Focus auto-moves to dialog, Escape to close, Tab trapped | `aria-labelledby`, `aria-describedby` (required) |
 | Tabs | `role="tablist"` > `role="tab"` + `role="tabpanel"` | Arrow keys between tabs, Tab to panel | `aria-selected`, `aria-controls`, `aria-labelledby` |
 | Menu | `role="menu"` > `role="menuitem"` | Arrow keys navigate, Enter/Space activate, Escape closes | `aria-expanded` (trigger), `aria-haspopup` |
 | Accordion | Heading + button trigger | Enter/Space toggle, optional Arrow keys | `aria-expanded`, `aria-controls` |
 | Combobox | `role="combobox"` + `role="listbox"` > `role="option"` | Arrow keys navigate options, Enter selects, Escape closes | `aria-expanded`, `aria-activedescendant`, `aria-autocomplete` |
+| Listbox | `role="listbox"` > `role="option"` | Arrow keys navigate, Space/Enter select, type-ahead search | `aria-selected`, `aria-multiselectable`, `aria-activedescendant` |
 | Tooltip | `role="tooltip"` | Escape to dismiss, appears on focus + hover | `aria-describedby` on trigger |
+| Disclosure | `<button>` trigger + panel | Enter/Space to toggle visibility | `aria-expanded`, `aria-controls` |
 | Tree | `role="tree"` > `role="treeitem"` | Arrow keys navigate, Enter/Space expand/collapse | `aria-expanded`, `aria-selected`, `aria-level` |
+| Carousel/Slider | `role="region"` + `aria-roledescription="carousel"`, `role="group"` per slide | Previous/Next buttons, pause auto-rotation | `aria-label` per slide, `aria-live="off"` when auto-rotating, `aria-live="polite"` when paused |
+| Switch/Toggle | `role="switch"` | Space to toggle | `aria-checked="true/false"` |
+| Slider/Range | `role="slider"` | Arrow keys change value, Home/End for min/max, Page Up/Down for large steps | `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext` |
+| Feed | `role="feed"` > `role="article"` | Page Down/Up between articles | `aria-setsize`, `aria-posinset`, `aria-busy` |
+| Grid/Data Grid | `role="grid"` > `role="row"` > `role="gridcell"` | Arrow keys between cells, Enter to activate cell content | `aria-colindex`, `aria-rowindex`, `aria-selected`, `aria-sort` |
+| Toolbar | `role="toolbar"` | Arrow keys between tools, Tab to enter/leave toolbar | `aria-orientation`, `aria-label` |
+| Breadcrumb | `<nav aria-label="Breadcrumb">` + `<ol>` | Standard link navigation | `aria-current="page"` on current item |
 | Alert | `role="alert"` or `aria-live="assertive"` | N/A (announced automatically) | N/A |
 | Status | `role="status"` or `aria-live="polite"` | N/A (announced at next pause) | N/A |
+| Log | `role="log"` (implicit `aria-live="polite"`) | N/A (new entries announced) | `aria-atomic="false"` (default) |
+| Progressbar | `role="progressbar"` | N/A | `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext` |
 
 ## Edge Cases
 
@@ -357,6 +513,53 @@ For custom widgets, verify against ARIA Authoring Practices Guide (APG) patterns
 - Recommend tagged PDF (PDF/UA — ISO 14289)
 - **WCAG**: SC 1.1.1, 1.3.1, 1.3.2
 
+### Timing & Auto-updating Content
+- Auto-playing carousels/sliders/tickers without visible pause/stop button
+- `<meta http-equiv="refresh">` with auto-redirect
+- Session timeout without warning and extension mechanism (at least 20-second warning before expiry)
+- Auto-updating dashboards, feeds, or data without pause control
+- Countdown timers without `role="timer"` or `aria-live` region
+- **WCAG**: SC 2.2.1, 2.2.2
+
+### Content on Hover or Focus
+- Tooltips, popovers, dropdown previews triggered by hover/focus must be:
+  1. **Dismissible**: user can dismiss without moving pointer/focus (typically Escape key)
+  2. **Hoverable**: user can move pointer over the revealed content without it disappearing
+  3. **Persistent**: content remains visible until user dismisses, moves pointer/focus, or info is no longer valid
+- `title` attribute tooltips fail all three requirements (not keyboard-triggerable, not hoverable, auto-dismiss)
+- CSS-only `:hover` tooltips without `:focus`/`:focus-within` equivalent
+- **WCAG**: SC 1.4.13
+
+### Virtual/Infinite Scrolling
+- Virtualized lists (react-window, react-virtualized, @tanstack/virtual) remove DOM nodes — screen readers lose context, position, and focus
+- Use `role="feed"` with `aria-busy="true"` during loading for feed-like content
+- `aria-setsize` and `aria-posinset` on items so AT can communicate total count and position
+- Must provide "Load more" button alternative to scroll-triggered loading
+- Must provide skip link to bypass the feed/list (e.g., skip to footer)
+- Focus management when items are removed/recycled from DOM
+- Status announcement when new items load ("50 more items loaded")
+- **WCAG**: SC 2.1.1, 1.3.1, 2.4.1, 4.1.3
+
+### Modern UI Patterns
+- **Skeleton screens**: skeleton elements should be `aria-hidden="true"` (not meaningful content); container needs `aria-busy="true"` during loading, `role="status"` or `aria-live` region to announce load completion
+- **Toast notifications**: must render inside a pre-existing `aria-live` region (inserting a new `aria-live` region with content already inside does NOT trigger announcement); error toasts should use `role="alert"` or `aria-live="assertive"`; auto-dismiss should be 5+ seconds with pause on hover/focus
+- **Command palettes (Cmd+K)**: need `role="combobox"` on input, `role="listbox"` on results, `aria-activedescendant` for visual focus, Escape to close with focus restoration, results count via `aria-live`
+- **AI chat interfaces**: message container needs `role="log"`; streaming responses need `aria-busy="true"` while generating; "AI is typing" needs `role="status"`; rendered markdown must use semantic HTML; message actions (copy, retry) must be keyboard accessible
+- **WCAG**: SC 4.1.2, 4.1.3, 2.1.1, 2.4.3
+
+### `contenteditable` Elements
+- Rich text editors using `contenteditable` need `role="textbox"`, `aria-multiline="true"`, and `aria-label`
+- Custom formatting controls must be keyboard accessible
+- Formatted output should maintain semantic structure
+- **WCAG**: SC 4.1.2, 2.1.1
+
+### Native HTML Elements (Modern)
+- `<dialog>`: verify `showModal()` (traps focus) vs `show()` (does not trap focus) is used appropriately; verify focus restoration on close; verify `autofocus` element within dialog
+- `<details>/<summary>`: flag `<details>` without `<summary>` (browser provides unhelpful default "Details"); flag interactive elements nested inside `<summary>` (nested interactivity)
+- `inert` attribute: removes element and descendants from tab order AND accessibility tree; misuse on active content creates complete barriers; useful alternative to `aria-hidden` + `tabindex="-1"` for background content behind modals
+- `popover` attribute: verify focus management, Escape key dismisses, screen reader announcements on show/hide
+- **WCAG**: SC 2.1.2, 2.4.3, 4.1.2
+
 ## Assistive Technology Considerations
 
 When flagging issues, note which assistive technologies are affected:
@@ -368,8 +571,14 @@ When flagging issues, note which assistive technologies are affected:
 | VoiceOver (macOS/iOS) | Blind / low vision | Rotor navigation; Web Content group handling; different `aria-live` behavior |
 | TalkBack (Android) | Blind / low vision | Touch exploration; gesture-based navigation; swipe to next element |
 | Dragon NaturallySpeaking | Motor disabilities | Voice commands target visible labels; `aria-label` may not match visible text |
+| Voice Access (Android) / Voice Control (iOS) | Motor disabilities | Targets visible labels like Dragon; grid overlay mode for unlabeled elements; label-in-name critical (SC 2.5.3) |
 | ZoomText / Screen magnifiers | Low vision | Magnification follows focus; content reflow at high zoom crucial |
 | Switch devices | Motor disabilities | Sequential access; scanning patterns; large target areas essential |
+| Eye tracking devices (Tobii, etc.) | Motor / ALS | Dwell-click activation; needs large targets (SC 2.5.8); pointer cancellation critical (SC 2.5.2) |
+| Braille displays | Blind / deafblind | Character-by-character reading; mathematical content rendering; table cell-by-cell navigation |
+| Keyboard-only (no AT) | Motor, power users | No screen reader feedback; relies entirely on visual focus indicators; affected by all tabindex/focus issues |
+| OS High Contrast Mode / forced-colors | Low vision | Background images disappear; box-shadow borders invisible; custom colors overridden by system colors |
+| Read-aloud tools (Immersive Reader, Read&Write) | Dyslexia, cognitive | Rely on proper text structure; images of text unreadable; heading hierarchy used for navigation |
 
 **Key compatibility note**: `aria-label` overrides visible text for screen readers but NOT for voice control users — if visible text says "Submit" but `aria-label` says "Submit order form", Dragon users saying "click Submit" may fail. Use `aria-labelledby` or match visible text when possible (SC 2.5.3 — Label in Name, WCAG 2.1).
 
@@ -500,6 +709,7 @@ For small scopes (1-5 files), use the condensed format:
 - **WCAG 2.2** (W3C Recommendation, October 2023) — 87 success criteria across A/AA/AAA
   - New in 2.2: SC 2.4.11 Focus Not Obscured (AA), SC 2.4.12 Focus Not Obscured Enhanced (AAA), SC 2.4.13 Focus Appearance (AAA), SC 2.5.7 Dragging Movements (AA), SC 2.5.8 Target Size Minimum (AA), SC 3.2.6 Consistent Help (A), SC 3.3.7 Redundant Entry (A), SC 3.3.8 Accessible Authentication Minimum (AA), SC 3.3.9 Accessible Authentication Enhanced (AAA)
 - **WCAG 3.0 (Silver)** — W3C Working Draft, not yet a recommendation. Introduces new conformance model with scoring. Do NOT use as compliance target yet; reference for future direction only.
+  - **APCA (Advanced Perceptual Contrast Algorithm)**: New contrast measurement method being developed for WCAG 3.0. More perceptually accurate than current luminance-ratio method (accounts for font weight, polarity, spatial frequency). NOT a current compliance requirement — continue using WCAG 2.2 contrast ratios (4.5:1 / 3:1) for compliance. Reference for awareness only.
 - **Section 508** (Revised 2018) — US federal, maps to WCAG 2.0 AA. Sections 502/503 have additional software-specific requirements.
 - **ADA Title III** — US, applies to "places of public accommodation" including websites. Courts increasingly reference WCAG 2.1 AA as the standard.
 - **EN 301 549** (v3.2.1) — EU, maps to WCAG 2.1 AA for web content (Clause 9). Clauses 10-12 cover documents, software, and documentation.
