@@ -518,12 +518,21 @@ For custom widgets, verify against ARIA Authoring Practices Guide (APG) patterns
 - Verify `ElementInternals` usage for form participation
 - **WCAG**: SC 4.1.2, 1.3.1
 
-### Third-Party Embeds
-- Every `<iframe>` must have a `title` attribute
+### Third-Party Embeds & Advertising Content
+- Every `<iframe>` must have a `title` attribute — SC 4.1.2
 - Cross-origin iframes cannot be audited — report as "unauditable, manual review required"
 - Flag known problematic embeds (chat widgets, cookie consent, social media)
 - Check iframes are not given `tabindex="-1"` (blocks keyboard access)
-- **WCAG**: SC 4.1.2, 2.1.1
+
+**Ad-Specific Patterns** (commonly missed by automated scanners):
+- Ad network iframes (doubleclick, googlesyndication, googleadservices, amazon-adsystem, criteo, taboola, outbrain) — flag as unauditable third-party content
+- Tracking pixels: 1x1 images without `alt=""` create screen reader noise
+- Ad overlay/interstitial patterns: fixed-position elements with high z-index that lack focus trapping, Escape key dismissal, `role="dialog"`, or `aria-modal="true"`
+- Cookie consent / GDPR banners: must be keyboard-operable, have proper focus management, and not obscure page content without a dismiss mechanism
+- Ad containers with deeply nested `<div>` structures using only click handlers (no `role`, no `tabindex`, no keyboard handlers) — keyboard users cannot interact
+- Auto-playing video/audio in ad embeds without user controls
+- Focus-stealing: ad scripts that programmatically move focus away from user's current position
+- **WCAG**: SC 4.1.2, 2.1.1, 2.1.2, 2.4.3, 1.1.1, 1.4.2
 
 ### SPAs (Single-Page Applications)
 - Detect client-side routing (React Router, Vue Router, Angular Router, `history.pushState`)
