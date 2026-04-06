@@ -501,6 +501,40 @@ For custom widgets, verify against ARIA Authoring Practices Guide (APG) patterns
 | Log | `role="log"` (implicit `aria-live="polite"`) | N/A (new entries announced) | `aria-atomic="false"` (default) |
 | Progressbar | `role="progressbar"` | N/A | `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext` |
 
+## Email HTML Accessibility
+
+HTML emails operate under fundamentally different constraints than web pages. Most email clients strip semantic HTML5 elements, ARIA attributes, `<style>` blocks, and JavaScript. Layout is table-based, styles must be inline, and dark mode behavior varies by client. These patterns supplement the general rules above for email-specific auditing.
+
+### Email Client Stripping
+116. **ARIA attributes as sole accessible name** — Gmail, Outlook.com, and Yahoo strip `aria-label`, `aria-labelledby`, and `aria-describedby`. Elements relying solely on ARIA for their accessible name become unlabeled after stripping. Always require visible text as the primary accessible name. — SC 4.1.2
+117. **HTML5 semantic elements** — `<nav>`, `<main>`, `<article>`, `<section>`, `<header>`, `<footer>`, `<aside>` are stripped by Gmail, Outlook, and Yahoo. Their use creates false confidence that semantic structure exists. Heading elements (`<h1>`-`<h6>`) are the most reliable semantic elements in email. — SC 1.3.1
+118. **`<style>` block classes without inline fallback** — Gmail strips `<style>` blocks in many contexts. If critical visual properties (color, font-size, display) exist only in a `<style>` block and not inline, they vanish — potentially making text invisible or unreadable. — SC 1.4.3
+119. **`title` attribute on links as sole differentiator** — Most email clients strip `title`. Links with generic visible text ("click here") differentiated only by `title` attribute become indistinguishable. — SC 2.4.4
+
+### Dark Mode Accessibility
+120. **One-sided color declarations** — Setting `color` without `background-color` (or vice versa) on elements with text content causes invisible text when email clients force dark mode. The most common dark mode accessibility failure in email. Always set both together. — SC 1.4.3
+121. **Missing `<meta name="color-scheme" content="light dark">`** — Without this declaration, some clients apply partial dark mode inversions that destroy contrast unpredictably. — Best practice
+122. **Transparent PNG/GIF on assumed-white background** — Images with transparency and no explicit parent `background-color` may become invisible on forced dark backgrounds. — SC 1.1.1
+
+### Email Layout Patterns
+123. **Nested layout tables missing `role="presentation"`** — Email HTML commonly nests 3-5 levels of layout tables. Each nested table needs `role="presentation"` — a single missing one reintroduces table semantics. Screen readers (especially NVDA/JAWS with Outlook) will announce "table, row 1 of 47, column 1 of 3". — SC 1.3.1
+124. **`<td>` used as pseudo-headings** — Email templates frequently use `<td style="font-size:22px; font-weight:bold">` instead of proper heading elements. Detectable heuristic: a `<td>` whose only content is short text with bold/large inline styles and no child heading element. — SC 1.3.1
+125. **Empty `<th>` cells in layout** — Common in grid layouts. A `<th>` with no text content and no `aria-label` creates a confusing table header announcement. — SC 1.3.1
+
+### Email-Specific Content Patterns
+126. **Duplicate adjacent links to same URL** — Email templates often wrap both an image and a text CTA in separate `<a>` tags pointing at the same `href`. Screen readers announce the link twice. Detect consecutive `<a>` elements sharing an `href`. — SC 2.4.4
+127. **Preheader text hidden with problematic techniques** — Common hack: `font-size:0; line-height:0; max-height:0; overflow:hidden`. Screen readers still read content hidden this way in many email clients. Content should make sense when read aloud, or use `aria-hidden="true"` (though some clients strip that too). — SC 1.3.1
+128. **Literal ALL-CAPS text** — Some screen readers spell out ALL-CAPS text letter-by-letter. CSS `text-transform: uppercase` is safer than literal capitals. Flag long strings (8+ characters) of literal uppercase text. — SC 1.3.2
+129. **Tracking pixels without empty alt** — 1x1 images used for open tracking must have `alt=""` to avoid screen reader noise. — SC 1.1.1
+130. **Animated GIFs without reduced-motion accommodation** — Email clients cannot respect `prefers-reduced-motion` for inline GIFs. Flag as advisory — keep animations under 5 seconds, avoid rapid flashing, provide static fallback when possible. — SC 2.3.1
+131. **Link density and cognitive load** — Marketing emails commonly exceed 1 link per 20 words, creating a wall of interactive elements for screen reader users. Flag excessive link density and excessive CTA button count (>4 primary CTAs). — Best practice
+132. **`display:none` / `mso-hide:all` / `visibility:hidden` discrepancies** — Each behaves differently across clients and screen readers. `display:none` is reliable for hiding from both visual and SR. `visibility:hidden` takes up space and SR behavior varies. `mso-hide:all` is Outlook-only and SR-ignored. Flag `visibility:hidden` and `mso-hide:all` used as sole hiding mechanism for meaningful content. — SC 1.3.1
+
+### MSO Conditional Content (Outlook)
+133. **Content inside `<!--[if mso]>` without accessible equivalent** — MSO conditional blocks render only in Outlook (Word engine), but screen readers in Outlook do read them. Content in these blocks with no matching non-MSO fallback means Outlook users get content others don't see, or vice versa. Both paths need equivalent alt text and structure. — SC 1.1.1
+134. **VML images without alt text** — Inside MSO conditionals, `<v:image>` or `<v:rect>` with `<v:fill>` used for background images rarely carry alt text. — SC 1.1.1
+135. **MSO-only spacer elements** — Spacer elements or layout hacks inside MSO conditionals that contain non-empty text or missing `aria-hidden="true"` — screen readers in Outlook will read them. — SC 1.3.1
+
 ## Edge Cases
 
 ### Canvas / WebGL
