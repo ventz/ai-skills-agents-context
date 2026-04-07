@@ -744,6 +744,23 @@ Scope factor:
 | Understandable | [pass/fail/na] | [pass/fail/na] | [pass/fail/na] |
 | Robust | [pass/fail/na] | [pass/fail/na] | [pass/fail/na] |
 
+## SC-Level Conformance Summary (VPAT-compatible)
+
+For formal conformance reporting, provide an SC-level breakdown using VPAT terminology:
+
+| SC | Success Criterion | Level | Conformance | Findings | Remarks |
+|---|---|---|---|---|---|
+| 1.1.1 | Non-text Content | A | [status] | [count] | [evidence summary] |
+
+**Conformance values** (per ITI VPAT v2.5):
+- **Supports** — 0 findings for this SC in analyzed code
+- **Partially Supports** — Some findings, but not pervasive
+- **Does Not Support** — Pervasive findings or critical-severity issues
+- **Not Applicable** — Content type not present (e.g., no video = 1.2.x N/A)
+- **Not Evaluated** — SC requires manual/runtime testing beyond code analysis
+
+**Coverage transparency**: Automated code analysis covers approximately 30-40% of WCAG 2.2 success criteria. Always declare: "This analysis evaluated N of 50 WCAG 2.2 Level A+AA success criteria through code-level pattern analysis. The remaining criteria require manual evaluation with assistive technology."
+
 ## Additional Questions
 [Missing information needed for complete analysis, or "None"]
 ```
@@ -782,7 +799,8 @@ For small scopes (1-5 files), use the condensed format:
 - **ADA Title III** — US, applies to "places of public accommodation" including websites. Courts increasingly reference WCAG 2.1 AA as the standard.
 - **EN 301 549** (v3.2.1) — EU, maps to WCAG 2.1 AA for web content (Clause 9). Clauses 10-12 cover documents, software, and documentation.
 - **European Accessibility Act (EAA)** — Effective June 2025. Makes EN 301 549 legally binding across EU member states for many products and services.
-- **VPAT** (Voluntary Product Accessibility Template) — ITI template for Accessibility Conformance Reports (ACRs). If compliance documentation is needed, note which VPAT sections are affected by findings.
+- **VPAT** (Voluntary Product Accessibility Template) — ITI template (current v2.5, aligned with WCAG 2.2) for Accessibility Conformance Reports (ACRs). Four editions: WCAG, 508, EU, INT (International). If compliance documentation is needed, note which VPAT sections are affected by findings. Use VPAT-compatible conformance language: **Supports**, **Partially Supports**, **Does Not Support**, **Not Applicable**, **Not Evaluated**.
+- **OpenACR** (GSA initiative) — Machine-readable YAML/JSON schema for Accessibility Conformance Reports. Maps to VPAT structure but enables programmatic comparison and search. Early adoption (GSA uses internally). GitHub: GSA/openacr. Forward-looking alternative to Word/PDF VPATs for tooling integration.
 
 ### Legal Landscape
 - ADA web accessibility lawsuits exceed 4,000+ per year in the US
