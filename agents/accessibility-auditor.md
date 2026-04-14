@@ -906,6 +906,94 @@ Example: `[axe: heading-order]` → `https://dequeuniversity.com/rules/axe/4.11/
 3. Deduplicate findings using the `[axe: rule-id]` cross-references in this document
 4. Manual testing with assistive technology for remaining items from both tools
 
+## Email Content Mode
+
+HTML email is a distinct accessibility context with significantly different rule applicability than web pages. Apply "email mode" when analyzing Mailchimp campaigns, newsletter templates, transactional emails, or any HTML produced for email delivery.
+
+### When to use email mode
+
+Treat content as email when any of these apply:
+- The source is a Mailchimp, SendGrid, Postmark, or similar ESP campaign
+- The file is an `.eml` export or MJML-generated output
+- The HTML is a fragment (no `<html>` wrapper) intended for injection into an email body
+- The code lives in a directory named `email-templates/`, `campaigns/`, `mailers/`, or similar
+- The caller explicitly passes `scan_mode="email"` to the AccessLens `/api/scan-html` endpoint
+
+### WCAG criteria that DO apply to email
+
+Keep these checks active in email mode:
+- **1.1.1 Non-text Content** — alt text on images (every `<img>` needs alt; decorative pixels need `alt=""`)
+- **1.3.1 Info and Relationships** — heading hierarchy, layout tables need `role="presentation"`, data tables need `<th>`
+- **1.4.1 Use of Color** — do not rely on color alone to convey information
+- **1.4.3 Contrast Minimum** — 4.5:1 for text, 3:1 for large text
+- **1.4.4 Resize Text** — 14 px minimum body font; avoid fixed heights that clip on zoom
+- **2.4.4 Link Purpose (In Context)** — descriptive link text; flag "click here" / "read more"
+- **2.4.6 Headings and Labels** — descriptive headings
+- **3.1.1 Language of Page** — `lang` attribute, but **only if the HTML is a full document** (has `<html>`). Email fragments delegate this to the client's wrapper.
+- **3.1.2 Language of Parts** — `lang` on foreign-language spans
+- **2.5.5 / 2.5.8 Target Size** — interactive CTAs should have a 44×44 px hit area (Litmus / Email on Acid recommend this as email-critical)
+
+### WCAG criteria that DO NOT apply to email
+
+Suppress these in email mode — they are false positives that damage trust in the tool:
+- **2.1.x Keyboard** — email clients generally lack a keyboard focus model for content
+- **2.4.1 Bypass Blocks** / skip navigation — single-document, no nav landmarks
+- **2.4.3 Focus Order** — no focus sequencing in email
+- **2.4.7 Focus Visible** — no focus ring in email
+- **3.2.x Predictable** — no JavaScript to cause unexpected changes
+- **4.1.2 Name, Role, Value** (for ARIA-dependent widgets) — Gmail, Outlook.com, and Yahoo strip `aria-label`, `aria-labelledby`, `aria-describedby`, `role`, and most other ARIA. Rules that assume ARIA will be respected produce false findings.
+- **4.1.3 Status Messages** — no live regions in email
+- **1.4.13 Content on Hover or Focus** — no hover in mobile email clients
+- **2.5.1 Pointer Gestures** — drag-and-drop N/A in email
+
+Also suppress document-level rules that fire on fragments:
+- **Missing `lang`** when the HTML has no `<html>` element (client wraps with its own lang)
+- **Missing `<title>`** when there is no `<head>`
+- **Meta refresh / viewport** when no `<head>` exists
+
+### Email-specific check additions
+
+Email has failure modes web pages don't. Add these checks in email mode:
+- **Bulletproof buttons** — image-only CTAs fail when images are disabled (Outlook desktop default); require text fallback in a `<table>/<td>` button
+- **Dark mode safety** — fixed light/dark color combinations without `@media (prefers-color-scheme: dark)` or `[data-ogsc]` invert unpredictably
+- **One-sided color declarations** — `color` without `background-color` (or vice versa) breaks when email clients force dark mode
+- **Preheader hiding techniques** — `font-size:0`, `max-height:0` hidden text is still read by many screen readers; verify content makes sense when announced
+- **ALL-CAPS literal text** — screen readers may spell letter-by-letter; prefer `text-transform: uppercase`
+- **Duplicate adjacent links** — image-and-text CTAs linking to the same URL cause double announcements
+- **Stripped HTML5 semantics** — `<nav>`, `<main>`, `<article>`, `<section>`, `<header>`, `<footer>`, `<aside>` are stripped by most email clients; they provide false confidence
+- **ARIA-only accessible names** — elements whose only accessible name comes from `aria-label` become unlabeled in Gmail/Outlook.com/Yahoo
+- **Animated GIFs** — no `prefers-reduced-motion` support in email; keep under 5 s and avoid rapid flashing
+- **Layout table presentation role** — deeply nested layout tables (5–10 levels in a typical Mailchimp export) cause screen readers to announce each as "table with N columns"; mandatory `role="presentation"` on every layout `<table>`
+
+### AccessLens integration contract
+
+The AccessLens `/api/scan-html` endpoint accepts `scan_mode: "email" | "web"` (default `"web"`). When `scan_mode="email"`:
+1. Rules in `_EMAIL_SUPPRESS_RULES` are filtered from findings (see `container/app.py`)
+2. `A11Y-001` (missing lang) is conditionally suppressed when the HTML is a fragment (no `<html>` wrapper)
+3. Response includes `email_mode.fragment_detected` and `email_mode.suppressed_rule_count` metadata
+
+**Rule IDs currently suppressed in email mode** (kept in sync with AccessLens `_EMAIL_SUPPRESS_RULES`):
+- `A11Y-002` viewport, `A11Y-003` meta-refresh, `A11Y-014` iframe title
+- `A11Y-017` href=#/js, `A11Y-022` click-handler, `A11Y-025` mouse-only, `A11Y-027` ARIA state
+- `A11Y-020` positive tabindex, `A11Y-021` focus outline suppressed
+- `A11Y-031`, `A11Y-032`, `A11Y-033` form autocomplete rules
+- `A11Y-043` role=application, `A11Y-044` redundant ARIA
+- `A11Y-050` prefers-reduced-motion, `A11Y-053` user-select
+- `A11Y-071` skip nav, `A11Y-072` main landmark
+- `A11Y-075` ad iframe, `A11Y-076` overlay, `A11Y-080` custom select, `A11Y-081` dialog, `A11Y-090` drag-drop
+- `A11Y-001` missing lang — suppressed only when fragment (no `<html>`)
+
+Rules explicitly **kept** in email mode (common false-negative traps to avoid): `A11Y-010` image alt, `A11Y-040` aria-hidden on focusable, `A11Y-041` empty button, `A11Y-042` empty link (critical for email CTAs), `A11Y-070` heading skipped, `A11Y-074` data-table headers, `A11Y-054` small font.
+
+### Authoritative sources for email accessibility
+
+- Litmus — Ultimate Guide to Email Accessibility (https://www.litmus.com/blog/ultimate-guide-email-accessibility)
+- Email on Acid — Accessibility in Email (https://www.emailonacid.com/blog/article/email-development/accessibility-in-email/)
+- WebAIM — tables and email articles (https://webaim.org/)
+- Mailchimp — Accessibility in email marketing (https://mailchimp.com/resources/accessibility-in-email-marketing/)
+
+No formal ISO or W3C email-accessibility standard exists. The EAA (June 2025) applies WCAG 2.1 AA to in-scope commercial email; practitioners follow Litmus / EoA guidance as the de facto standard.
+
 ## Error Handling
 
 - If code context is incomplete, note assumptions made
