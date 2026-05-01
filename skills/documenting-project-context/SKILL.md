@@ -105,7 +105,38 @@ cat CLAUDE.MD
 
 If CLAUDE.MD doesn't exist, create it with basic structure.
 
-### 2. Identify the appropriate section
+### 2. Check for docs delegation pattern
+
+After reading CLAUDE.md, scan for references to sub-files:
+- Glob patterns: `docs/*`, `docs/**`
+- Explicit references: `docs/architecture.md`, `docs/deployment.md`
+- Inline pointers: `See docs/`, `Details in docs/`
+
+**If a docs delegation pattern is found:**
+
+1. **Read the docs directory** to understand existing sub-file organization
+2. **Decide where content belongs** using this heuristic:
+   - **CLAUDE.md** — one-liners, critical constraints, quick-start, short gotchas (anything that must be seen immediately)
+   - **Sub-file** — detailed sections (>10 lines) on a specific topic: architecture, deployment, debugging, system deep-dives
+3. **Route the content**:
+   - If a sub-file already covers the topic → update that sub-file
+   - If CLAUDE.md already has a `See docs/X` pointer for this topic → write to `docs/X`
+   - If no matching sub-file exists → create one with a clear, descriptive name (e.g., `docs/auth-flow.md`)
+   - If you create a new sub-file → add a brief reference in CLAUDE.md pointing to it
+
+**Sub-file format**: Use the same concise, scannable style as CLAUDE.md (bullets > prose, assume Claude is smart). Each sub-file should have a clear `# Title` and focus on one topic.
+
+**Example CLAUDE.md with delegation**:
+```markdown
+## Architecture
+- Modules MUST be single `.py` files (see docs/module-system.md)
+- Database router in `utils/dynamodb.py` supports SQLite (dev) and DynamoDB (prod)
+
+## Deployment
+See docs/deployment.md for AWS/ECS details.
+```
+
+### 3. Identify the appropriate section
 
 **Recommended structure** (in priority order):
 1. **Quick Start**: Essential commands to get running
@@ -116,7 +147,7 @@ If CLAUDE.MD doesn't exist, create it with basic structure.
 6. **AWS/Deployment**: Account, profile, key resources
 7. **Debugging Quick Reference**: Log patterns, common commands
 
-### 3. Format information clearly
+### 4. Format information clearly
 
 **Template for constraints/gotchas**:
 ```markdown
@@ -136,14 +167,14 @@ Example: [minimal code showing the point]
 - **Important**: Critical gotcha or constraint
 ```
 
-### 4. Update CLAUDE.MD
+### 5. Update CLAUDE.MD (or sub-file)
 
 - **Update, don't append**: If information changes, update existing entry
 - **Compress while adding**: If section is getting long, compress it
 - **Remove redundancy**: Check if similar info exists elsewhere
 - **Use Edit tool**: Make precise updates, preserve structure
 
-### 5. Confirm with user
+### 6. Confirm with user
 
 Tell the user:
 - What was documented
