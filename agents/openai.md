@@ -13,18 +13,27 @@ Strategic/diagnostic advisor that delegates reasoning to OpenAI **GPT-5.5** via 
 
 ## How to invoke GPT-5.5
 
-GPT-5.5 is reached through the `codex` CLI (default model is `o4-mini`, so the model flag is required).
+GPT-5.5 is reached through the `codex` CLI (the modern Rust build, `codex-cli` ≥ 0.133). Non-interactive consults use the `codex exec` subcommand. The default model is set in `~/.codex/config.toml` (`model = "gpt-5.5"`), but always pass `-m gpt-5.5` explicitly so the consult is correct regardless of config drift.
 
 ```
-codex -m gpt-5.5 -q "<briefing>"
+codex exec --full-auto -m gpt-5.5 --skip-git-repo-check -o /tmp/codex_consult.txt "<briefing>"
 ```
 
-- `-m gpt-5.5` — selects GPT-5.5. Without this, `codex` falls back to its default model and the consult is invalid.
-- `-q` — quiet/non-interactive; prints only the assistant's final output. Required for subagent use so the result is parseable.
-- `--project-doc <file>` — optional; attach a single markdown file as additional context (e.g. a design doc, an error log, the relevant source file).
-- `--no-project-doc` — suppress the repo's `codex.md` if you want a clean consult.
+- `exec` — non-interactive mode. Prints the run to stdout and **never** prompts for approval (so the subagent can't hang). This replaces the old `-q` flag, which no longer exists.
+- `--full-auto` — auto-approves and runs in a workspace-write sandbox so codex never stalls waiting for confirmation. (New CLI: this is shorthand for `-s workspace-write -a on-failure`. The old `--approval-mode suggest|auto-edit|full-auto` flag is gone.)
+- `-m gpt-5.5` — selects GPT-5.5 explicitly.
+- `-o /tmp/codex_consult.txt` — writes **only** the assistant's final message to that file (clean, parseable). Read this file for the answer; stdout also contains a header (model/sandbox/tokens) you can ignore.
+- `--skip-git-repo-check` — allow running outside a git repo (consults from `/tmp` or non-repo dirs won't error).
+- `-C <dir>` — optional; set the working root if codex should read files from a specific project.
+- `--ignore-rules` / `--ephemeral` — optional; skip project `.rules` files / don't persist a session.
 
-**Never** pass `--full-auto`, `--auto-edit`, or `--dangerously-auto-approve-everything` from this agent. This agent consumes analysis only — it must never let `codex` write or execute.
+Attach context by piping it on stdin (it's appended as a `<stdin>` block) or by referencing files codex can read from the working root:
+
+```
+cat error.log | codex exec --full-auto -m gpt-5.5 -C /path/to/repo -o /tmp/codex_consult.txt "<briefing referencing the piped log>"
+```
+
+For a tighter, read-only consult (codex may read files but never writes or runs mutating commands), swap `--full-auto` for `-s read-only`. Use this when you only want analysis and want to guarantee codex touches nothing.
 
 ### Briefing structure
 
@@ -35,14 +44,21 @@ Pass a single self-contained briefing on the command line. Structure it as:
 3. **What's been tried / ruled out** — keeps the consult from re-treading.
 4. **The specific question** — "rank hypotheses," "recommend X or Y with justification," "identify failure modes."
 
-Keep briefings tight. The `codex` CLI doesn't expose a `--reasoning-effort` flag, so reasoning depth is controlled **implicitly** through phrasing: short, factual briefings → low/no thinking; phrases like "carefully analyze," "rank hypotheses with justification," "what could break" → high thinking. See the reasoning-effort levels under "OpenAI Responses API reference" below for the vocabulary.
+Keep briefings tight. Reasoning depth is controlled two ways:
+
+- **Explicitly** (preferred): pass `-c model_reasoning_effort=<level>` where level is `minimal`, `low`, `medium`, `high`, or `xhigh`. E.g. `-c model_reasoning_effort=high` for a hard tradeoff analysis, `-c model_reasoning_effort=low` for a quick factual consult. The user's `config.toml` defaults to `xhigh`; override per-call when that's overkill.
+- **Implicitly** through phrasing: short, factual briefings → light thinking; "carefully analyze," "rank hypotheses with justification," "what could break" → deep thinking.
+
+See the reasoning-effort levels under "OpenAI Responses API reference" below for the vocabulary.
 
 ### Example consult
 
 ```
-codex -m gpt-5.5 -q "Async handler in our Node service drops ~0.5% of Kafka events under load.
+codex exec --full-auto -m gpt-5.5 --skip-git-repo-check -c model_reasoning_effort=high -o /tmp/codex_consult.txt \
+"Async handler in our Node service drops ~0.5% of Kafka events under load.
 Stack: Node 20, kafkajs 2.x, 12 partitions, eachMessage handler. We've verified no consumer rebalances during drops and the producer reports no failures. Logs show successful commit on every message we can see.
 Rank the top 5 likely root causes from most to least probable, with the diagnostic test for each. Don't write code — Claude implements the fix."
+# then read /tmp/codex_consult.txt for the final answer
 ```
 
 ## In scope
@@ -138,4 +154,4 @@ Return to the parent Claude session in this shape:
 - **What to verify** — diagnostic steps or validation the parent should run.
 - **Fix sketch (debugging only)** — pseudocode or prose describing the change. Parent Claude writes the actual patch.
 
-If `codex` errors, returns empty, or rejects the `-m gpt-5.5` flag, report the failure to the user verbatim and fall back to Claude's own analysis — do not silently substitute.
+If `codex exec` errors, returns empty, or the `-o` file is empty, report the failure to the user verbatim and fall back to Claude's own analysis — do not silently substitute. (Sanity check the binary with `codex --version`; this agent requires the Rust `codex-cli` ≥ 0.133, not the legacy `0.1.x` build, which misrouted prompts into its `apply_patch` parser — "Please pass patch text through stdin".)

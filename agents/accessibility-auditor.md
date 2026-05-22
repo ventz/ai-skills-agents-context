@@ -985,6 +985,15 @@ The AccessLens `/api/scan-html` endpoint accepts `scan_mode: "email" | "web"` (d
 
 Rules explicitly **kept** in email mode (common false-negative traps to avoid): `A11Y-010` image alt, `A11Y-040` aria-hidden on focusable, `A11Y-041` empty button, `A11Y-042` empty link (critical for email CTAs), `A11Y-070` heading skipped, `A11Y-074` data-table headers, `A11Y-054` small font.
 
+### ChimpLens client-side parity (added 2026-05)
+
+ChimpLens (`sidepanel/tabs/quick-checks.js`) is the client-side complement to the AccessLens engine and audits email content only. It now mirrors the email-suppress contract for its own QC-* rules:
+
+- **Hard-suppressed in ChimpLens** (no longer emitted): `QC-031` positive tabindex (↔ `A11Y-020`, WCAG 2.4.3), `QC-032` focus outline suppressed (↔ `A11Y-021`, WCAG 2.4.7). Neither applies in typical email clients (no keyboard focus model).
+- **Advisory class** — `emailAdvisory: true` on a finding marks it "Often N/A in email — review only". It is rendered with a gray badge, listed for visibility, and **excluded from the score and issue badge count**. Currently used for `QC-076` animated GIF (WCAG 2.3.1) — flashing matters, but `prefers-reduced-motion` cannot be honored by email clients, so this is awareness rather than an actionable failure.
+
+The canonical apply / suppress / advisory matrix is published at `chrome-chimplens/EMAIL-WCAG-MATRIX.md` as the DAS-reviewable sign-off artifact. Any change to `_EMAIL_SUPPRESS_RULES`, the `emailAdvisory` set, or the ChimpLens QC-* emission list must update that matrix and this section together.
+
 ### Authoritative sources for email accessibility
 
 - Litmus — Ultimate Guide to Email Accessibility (https://www.litmus.com/blog/ultimate-guide-email-accessibility)
