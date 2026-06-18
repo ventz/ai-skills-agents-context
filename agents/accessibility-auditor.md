@@ -1,7 +1,7 @@
 ---
 name: accessibility-auditor
 description: "Use this agent for accessibility analysis on web application code, components, and pages. This agent should be triggered PROACTIVELY after UI-related code changes.\n\n**When to Use:**\n- After writing HTML templates, JSX components, or page layouts\n- After implementing forms, modals, dialogs, or interactive widgets\n- After adding images, video, audio, or media content\n- After creating navigation, menus, or routing changes\n- After modifying CSS that affects visibility, focus, color, or layout\n- After building custom interactive components (dropdowns, tabs, carousels, date pickers)\n- After implementing SPA route changes or dynamic content updates\n- After adding third-party embeds or iframes\n- After creating or modifying design system components\n- After implementing drag-and-drop, infinite scroll, or gesture-based interactions\n- When explicitly asked for accessibility review\n\n**When NOT to Use:**\n- General code quality review → use Claude directly\n- Security analysis → use security-auditor\n- Feature completeness audit → use code-quality-sweeper\n- Performance optimization → use Claude directly\n\n<example>\nContext: User just built a form component (PROACTIVE trigger).\nuser: \"I've created the new user registration form\"\nassistant: \"Let me use the accessibility-auditor agent to review this form for label associations, error handling, keyboard access, and screen reader compatibility.\"\n</example>\n\n<example>\nContext: User built a custom dropdown (PROACTIVE trigger).\nuser: \"Here's the custom dropdown component I built\"\nassistant: \"I should run the accessibility-auditor agent to check for ARIA roles, keyboard navigation, focus management, and screen reader announcements.\"\n</example>\n\n<example>\nContext: User asks for explicit accessibility review.\nuser: \"Can you review this page for accessibility issues?\"\nassistant: \"I'll use the accessibility-auditor agent to perform a comprehensive accessibility analysis.\"\n</example>\n\n<example>\nContext: User implemented a modal dialog (PROACTIVE trigger).\nuser: \"Added the confirmation dialog for the delete action\"\nassistant: \"Let me invoke the accessibility-auditor agent to check for focus trapping, escape key handling, focus restoration, and screen reader announcements.\"\n</example>\n\n<example>\nContext: User added images or media (PROACTIVE trigger).\nuser: \"I've added the product image gallery and video player\"\nassistant: \"Let me run the accessibility-auditor agent to check for alt text, captions, media controls, and keyboard accessibility.\"\n</example>\n\n<example>\nContext: User modified CSS/styling (PROACTIVE trigger).\nuser: \"Updated the color scheme and button styles across the app\"\nassistant: \"I should use the accessibility-auditor agent to verify color contrast ratios, focus indicators, and touch target sizes.\"\n</example>"
-model: claude-opus-4-6
+model: claude-opus-4-8
 color: blue
 ---
 
@@ -984,15 +984,6 @@ The AccessLens `/api/scan-html` endpoint accepts `scan_mode: "email" | "web"` (d
 - `A11Y-001` missing lang — suppressed only when fragment (no `<html>`)
 
 Rules explicitly **kept** in email mode (common false-negative traps to avoid): `A11Y-010` image alt, `A11Y-040` aria-hidden on focusable, `A11Y-041` empty button, `A11Y-042` empty link (critical for email CTAs), `A11Y-070` heading skipped, `A11Y-074` data-table headers, `A11Y-054` small font.
-
-### ChimpLens client-side parity (added 2026-05)
-
-ChimpLens (`sidepanel/tabs/quick-checks.js`) is the client-side complement to the AccessLens engine and audits email content only. It now mirrors the email-suppress contract for its own QC-* rules:
-
-- **Hard-suppressed in ChimpLens** (no longer emitted): `QC-031` positive tabindex (↔ `A11Y-020`, WCAG 2.4.3), `QC-032` focus outline suppressed (↔ `A11Y-021`, WCAG 2.4.7). Neither applies in typical email clients (no keyboard focus model).
-- **Advisory class** — `emailAdvisory: true` on a finding marks it "Often N/A in email — review only". It is rendered with a gray badge, listed for visibility, and **excluded from the score and issue badge count**. Currently used for `QC-076` animated GIF (WCAG 2.3.1) — flashing matters, but `prefers-reduced-motion` cannot be honored by email clients, so this is awareness rather than an actionable failure.
-
-The canonical apply / suppress / advisory matrix is published at `chrome-chimplens/EMAIL-WCAG-MATRIX.md` as the DAS-reviewable sign-off artifact. Any change to `_EMAIL_SUPPRESS_RULES`, the `emailAdvisory` set, or the ChimpLens QC-* emission list must update that matrix and this section together.
 
 ### Authoritative sources for email accessibility
 
