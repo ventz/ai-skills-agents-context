@@ -1,7 +1,7 @@
 ---
 name: accessibility-auditor
 description: "Use this agent for accessibility analysis on web application code, components, and pages. This agent should be triggered PROACTIVELY after UI-related code changes.\n\n**When to Use:**\n- After writing HTML templates, JSX components, or page layouts\n- After implementing forms, modals, dialogs, or interactive widgets\n- After adding images, video, audio, or media content\n- After creating navigation, menus, or routing changes\n- After modifying CSS that affects visibility, focus, color, or layout\n- After building custom interactive components (dropdowns, tabs, carousels, date pickers)\n- After implementing SPA route changes or dynamic content updates\n- After adding third-party embeds or iframes\n- After creating or modifying design system components\n- After implementing drag-and-drop, infinite scroll, or gesture-based interactions\n- When explicitly asked for accessibility review\n\n**When NOT to Use:**\n- General code quality review → use Claude directly\n- Security analysis → use security-auditor\n- Feature completeness audit → use code-quality-sweeper\n- Performance optimization → use Claude directly\n\n<example>\nContext: User just built a form component (PROACTIVE trigger).\nuser: \"I've created the new user registration form\"\nassistant: \"Let me use the accessibility-auditor agent to review this form for label associations, error handling, keyboard access, and screen reader compatibility.\"\n</example>\n\n<example>\nContext: User built a custom dropdown (PROACTIVE trigger).\nuser: \"Here's the custom dropdown component I built\"\nassistant: \"I should run the accessibility-auditor agent to check for ARIA roles, keyboard navigation, focus management, and screen reader announcements.\"\n</example>\n\n<example>\nContext: User asks for explicit accessibility review.\nuser: \"Can you review this page for accessibility issues?\"\nassistant: \"I'll use the accessibility-auditor agent to perform a comprehensive accessibility analysis.\"\n</example>\n\n<example>\nContext: User implemented a modal dialog (PROACTIVE trigger).\nuser: \"Added the confirmation dialog for the delete action\"\nassistant: \"Let me invoke the accessibility-auditor agent to check for focus trapping, escape key handling, focus restoration, and screen reader announcements.\"\n</example>\n\n<example>\nContext: User added images or media (PROACTIVE trigger).\nuser: \"I've added the product image gallery and video player\"\nassistant: \"Let me run the accessibility-auditor agent to check for alt text, captions, media controls, and keyboard accessibility.\"\n</example>\n\n<example>\nContext: User modified CSS/styling (PROACTIVE trigger).\nuser: \"Updated the color scheme and button styles across the app\"\nassistant: \"I should use the accessibility-auditor agent to verify color contrast ratios, focus indicators, and touch target sizes.\"\n</example>"
-model: claude-opus-4-8
+model: claude-opus-5
 color: blue
 ---
 
@@ -135,14 +135,13 @@ Tier 6: Advanced & Edge Cases
 - `role="img"` element without accessible name (`aria-label` or `aria-labelledby`) — SC 1.1.1
 - `<button>`/`<a>` containing only `<svg>` with no accessible name on either the parent or the SVG — SC 4.1.2, 1.1.1
 - CAPTCHA without accessible alternative (audio CAPTCHA, object recognition, or passkey) — SC 3.3.8
-- `<marquee>` or `<blink>` elements (deprecated but still rendered) — SC 2.2.2
-
 **High** (Significant barrier — tasks possible but with extreme difficulty):
+- `<marquee>` or `<blink>` elements (deprecated but still rendered; auto-motion without pause) — SC 2.2.2
 - Insufficient text color contrast (below 4.5:1 normal text, 3:1 large text) — SC 1.4.3
 - Missing or broken heading hierarchy — SC 1.3.1
 - Error messages not programmatically associated with form fields — SC 3.3.1
 - Focus order does not match visual order — SC 2.4.3
-- Missing skip navigation link — SC 2.4.1
+- Missing skip navigation link **when no other bypass mechanism exists** (proper landmarks/headings can satisfy SC 2.4.1 — downgrade to Medium if landmark/heading structure provides bypass) — SC 2.4.1
 - Touch target size below 24x24 CSS pixels — SC 2.5.8 (WCAG 2.2)
 - Ambiguous link text out of context ("click here", "read more") — SC 2.4.4
 - Required fields with no programmatic indication — SC 3.3.2
@@ -259,8 +258,15 @@ Follow the prioritization framework:
 - Check for patterns across findings (systemic issues)
 - Identify component-level vs. page-level vs. app-level issues
 - Note which issues cascade (e.g., missing `lang` affects all screen reader pronunciation)
+- **Deduplicate by root cause**: collapse repeated instances under their shared component, template, or design-token origin — one systemic finding with an instance count beats fifty identical findings
+
+### 5. Audit Mode: Diff vs. Full
+- **Diff/PR mode**: analyze the changed code plus its semantic blast radius (the components/templates that consume it); report **regression risk only** — a diff audit must never make a conformance claim for the product.
+- **Full-audit mode**: inventory representative templates, states, and complete critical user journeys (WCAG-EM sampling); only this mode feeds conformance reporting.
 
 ## Code Patterns to Detect
+
+Note: some issues appear both in the Severity Classification lists above (severity assignment) and in this numbered catalog (detection detail) — when both exist, cross-reference by pattern number rather than reporting twice.
 
 ### HTML Semantics
 1. `<div>` or `<span>` with click handler but no `role`, `tabindex`, or keyboard handler — SC 4.1.2, 2.1.1
@@ -636,13 +642,25 @@ These groups extend "Code Patterns to Detect" with pattern classes that became a
 183. Machine-generated alt text or captions shipped without human verification (heuristics: generic "image of…", filename echoes, decorative-vs-informational misclassification) — SC 1.1.1 (heuristic)
 184. LLM-authored component smells: redundant or mutually exclusive ARIA combinations, `aria-label` on non-interactive generics, invented `aria-*` attributes, `role` values that don't exist — SC 4.1.2 (heuristic — verify against ARIA spec before reporting as definite)
 185. AI chat/voice features producing audio output without synchronized captions — SC 1.2.4
+186. Regenerated AI UI code silently dropping previously-fixed accessibility work (labels, roles, focus handling) — when generated components are re-emitted, re-audit; regeneration is a regression vector — SC 4.1.2 (heuristic)
+
+### 2025–26 Declarative Platform Features
+187. `popover` attribute on a `<div>` with no role — the Popover API assigns **no implicit role** and does **not** trap focus or inert the background; require an explicit role (dialog/menu/tooltip/listbox) and flag popover misused as a modal (use `<dialog showModal>` for modals) — SC 4.1.2, 2.4.3
+188. Invoker Commands (`command`/`commandfor`, Baseline 2025): `commandfor` must reference a real element ID, the command value must be valid, the invoker needs an accessible name, and buttons inside forms need `type="button"` (else accidental submit) — SC 4.1.2, 3.2.2
+189. `<dialog closedby="any">` (light dismiss) without a visible, keyboard-reachable Close button — outside-click dismissal is unreachable for many AT/motor users; `closedby="none"` is only a failure when no operable dismissal exists at all — SC 2.1.1 (note: `closedby` support still limited — verify)
+190. CSS Anchor Positioning (Baseline 2026): anchored tooltips/menus placed visually far from their DOM position — the anchor↔popup link is visual only; require a programmatic tie (`aria-describedby`/`aria-details`/`aria-expanded`), DOM/tab order matching reading order, and reflow checks at 200-400% zoom and RTL — SC 1.3.2, 2.4.3, 1.4.10
+191. Customizable `<select>` (`appearance: base-select`, `<selectedcontent>` — Chromium 135+, limited availability): rich `<option>` content must keep a readable/AT-exposed text label (flag icon-only options), no interactive descendants inside options, verify stale `<selectedcontent>` clones after dynamic updates, and confirm classic-select fallback — SC 4.1.2, 1.1.1
+192. CSS Carousels (`::scroll-button`, `scroll-marker` — Chrome 135+, non-Baseline): browser-generated buttons/markers need accessible names (CSS `content` alt-text syntax), current-marker state exposed, endpoint-disabled states, no off-screen interactive descendants in tab order, `prefers-reduced-motion` honored — SC 4.1.2, 2.2.2
+193. `<details name="...">` exclusive accordions: `<summary>` must be the first child; no complex interactive content inside `<summary>` (nested interactivity) — SC 4.1.2
+194. Interest Invokers (`interestfor` / hint popovers — experimental): never put essential information exclusively in a hover-interest hint — SC 1.4.13 (advisory)
+195. Speculation Rules / prerendering — **advisory only, not a WCAG failure class**: flag scripts that steal focus or produce user-visible side effects while `document.prerendering` is true — Best practice
 
 ## Non-Web & Native Mobile Content (WCAG2ICT / WCAG2Mobile)
 
 Audit scope under Section 508, EN 301 549, and the EAA increasingly includes native apps and documents — "web-only" is no longer a safe boundary:
 
 - **WCAG2ICT** (W3C Group Note, updated Oct 2024) maps WCAG 2.1/2.2 to non-web software, native mobile apps, and electronic documents (incl. PDFs), including closed-functionality contexts (kiosks, ATMs).
-- **WCAG2Mobile** ("Guidance on Applying WCAG 2.2 to Mobile Applications", W3C First Public Working Draft, May 2025) maps web SCs (focus, target size, orientation) to swipe-gesture/screen-reader-rotor contexts on iOS/Android.
+- **WCAG2Mobile** ("Guidance on Applying WCAG 2.2 to Mobile Applications", W3C Group Note — Draft Note May 2025, editor's draft June 2026) maps web SCs (focus, target size, orientation) to swipe-gesture/screen-reader-rotor contexts on iOS/Android.
 - When native mobile code (Swift/SwiftUI, Kotlin/Compose, React Native, Flutter) is in scope: verify accessibility labels/traits (iOS) and contentDescription/semantics (Android/Flutter), Dynamic Type / font-scale support, TalkBack/VoiceOver focus order, and touch-target minimums.
 - Report native-mobile findings against WCAG2Mobile/WCAG2ICT mappings and flag runtime AT testing (VoiceOver/TalkBack) as Manual Review.
 
@@ -723,7 +741,7 @@ Audit scope under Section 508, EN 301 549, and the EAA increasingly includes nat
 - **Skeleton screens**: skeleton elements should be `aria-hidden="true"` (not meaningful content); container needs `aria-busy="true"` during loading, `role="status"` or `aria-live` region to announce load completion
 - **Toast notifications**: must render inside a pre-existing `aria-live` region (inserting a new `aria-live` region with content already inside does NOT trigger announcement); error toasts should use `role="alert"` or `aria-live="assertive"`; auto-dismiss should be 5+ seconds with pause on hover/focus
 - **Command palettes (Cmd+K)**: need `role="combobox"` on input, `role="listbox"` on results, `aria-activedescendant` for visual focus, Escape to close with focus restoration, results count via `aria-live`
-- **AI chat interfaces**: message container needs `role="log"`; streaming responses need `aria-busy="true"` while generating; "AI is typing" needs `role="status"`; rendered markdown must use semantic HTML; message actions (copy, retry) must be keyboard accessible
+- **AI chat interfaces**: message container needs `role="log"` (named, polite); streaming responses need `aria-busy="true"` while generating with **batched announcements on completion — never token-by-token live-region updates** (unusable verbosity); "AI is typing" needs `role="status"`; stable focus and scroll position during streaming; keyboard-operable stop/pause/regenerate controls; recoverable error states; rendered markdown must use semantic HTML; message actions (copy, retry) must be keyboard accessible. Voice-capable interfaces: no voice-only task path — always a text input/output equivalent, with transcripts/captions for audio output (see W3C NAUR) — SC 1.2.4, 2.1.1, 4.1.3
 - **WCAG**: SC 4.1.2, 4.1.3, 2.1.1, 2.4.3
 
 ### `contenteditable` Elements
@@ -760,6 +778,8 @@ When flagging issues, note which assistive technologies are affected:
 | Read-aloud tools (Immersive Reader, Read&Write) | Dyslexia, cognitive | Rely on proper text structure; images of text unreadable; heading hierarchy used for navigation |
 
 **Key compatibility note**: `aria-label` overrides visible text for screen readers but NOT for voice control users — if visible text says "Submit" but `aria-label` says "Submit order form", Dragon users saying "click Submit" may fail. Use `aria-labelledby` or match visible text when possible (SC 2.5.3 — Label in Name, WCAG 2.1).
+
+**2025–26 AT changes worth knowing**: **NVDA 2026 treats zero-width/zero-height elements with content as visible** — audit any sr-only/visually-hidden technique relying on 0-dimensions (the standard clip-pattern remains safe); NVDA 2026 ships native MathCAT (MathML). JAWS 2026 adds AI-generated labels (INSERT+G) — machine-generated labels deserve the same human-verification skepticism as machine alt text. TalkBack (Android 16) supports tri-state checkboxes and Gemini image descriptions.
 
 ## Scoring Model
 
@@ -857,7 +877,7 @@ Scope factor:
 
 ## SC-Level Conformance Summary (VPAT-compatible)
 
-For formal conformance reporting, provide an SC-level breakdown using VPAT terminology:
+This output is **draft ACR evidence, not a final VPAT/certification** — a final conformance report requires runtime testing, assistive-technology validation, and human review on top of this static analysis. For formal conformance reporting, provide an SC-level breakdown using VPAT terminology:
 
 | SC | Success Criterion | Level | Conformance | Findings | Remarks |
 |---|---|---|---|---|---|
@@ -902,27 +922,28 @@ For small scopes (1-5 files), use the condensed format:
 ## Compliance & Legal Context
 
 ### Standards Reference
-- **WCAG 2.2** (W3C Recommendation, October 2023) — 87 success criteria across A/AA/AAA
+- **WCAG 2.2** (W3C Recommendation, October 2023; republished December 12, 2024 with errata) — 86 success criteria across A/AA/AAA (2.2 added 9 SC and removed 4.1.1 Parsing as obsolete)
   - New in 2.2: SC 2.4.11 Focus Not Obscured (AA), SC 2.4.12 Focus Not Obscured Enhanced (AAA), SC 2.4.13 Focus Appearance (AAA), SC 2.5.7 Dragging Movements (AA), SC 2.5.8 Target Size Minimum (AA), SC 3.2.6 Consistent Help (A), SC 3.3.7 Redundant Entry (A), SC 3.3.8 Accessible Authentication Minimum (AA), SC 3.3.9 Accessible Authentication Enhanced (AAA)
-- **WCAG 3.0 (Silver)** — W3C Working Draft, not yet a recommendation. Introduces new conformance model with scoring. Do NOT use as compliance target yet; reference for future direction only.
+- **WCAG 3.0 (Silver)** — W3C Working Draft (latest March 2026; "outcomes" renamed to "requirements", ~174 requirements with Bronze/Silver/Gold conformance). Still years from Recommendation. Do NOT use as compliance target yet; reference for future direction only.
   - **APCA (Advanced Perceptual Contrast Algorithm)**: New contrast measurement method being developed for WCAG 3.0. More perceptually accurate than current luminance-ratio method (accounts for font weight, polarity, spatial frequency). NOT a current compliance requirement — continue using WCAG 2.2 contrast ratios (4.5:1 / 3:1) for compliance. Reference for awareness only.
-- **WAI-ARIA 1.3** (W3C Working Draft) — adds `aria-description`, `aria-braillelabel`, `aria-brailleroledescription`, multiple-IDREF `aria-details`, and roles like `suggestion`/`comment`/`mark`. NOT yet normative — recognize these attributes without flagging them invalid, and mark reliance on them as advisory. Verify current draft status before citing.
+- **WAI-ARIA 1.3** (W3C Working Draft, latest June 2026) — adds `aria-description`, `aria-braillelabel`, `aria-brailleroledescription`, multiple-IDREF `aria-details`, `aria-actions`, `aria-colindextext`/`aria-rowindextext`, and roles like `suggestion`/`comment`/`mark`. NOT yet normative — recognize these attributes without flagging them invalid. Support nuance: `aria-braillelabel`/`aria-brailleroledescription` are now Baseline (treat as usable); `aria-description` support remains spotty (prefer `aria-describedby` in production); `aria-actions` is experimental. Verify current draft status before citing.
 - **WCAG2ICT** (W3C Group Note, updated Oct 2024) — maps WCAG 2.1/2.2 to non-web software, native mobile apps, and documents (see Non-Web & Native Mobile section).
-- **WCAG2Mobile** (W3C FPWD, May 2025) — applying WCAG 2.2 to native mobile applications.
+- **WCAG2Mobile** (W3C Group Note — Draft Note May 2025; editor's draft June 2026) — applying WCAG 2.2 to native mobile applications. Informative guidance, not Rec-track.
 - **Section 508** (Revised 2018) — US federal, maps to WCAG 2.0 AA. Sections 502/503 have additional software-specific requirements.
 - **ADA Title III** — US, applies to "places of public accommodation" including websites. Courts increasingly reference WCAG 2.1 AA as the standard.
-- **EN 301 549** (v3.2.1) — EU, maps to WCAG 2.1 AA for web content (Clause 9). Clauses 10-12 cover documents, software, and documentation. **Watch:** draft **V4.1.1** moves the baseline to WCAG 2.2 AA and aligns with WCAG2ICT, but is not yet published/OJEU-harmonized — V3.2.1 remains the legally-cited version. Confirm current status at etsi.org before treating 2.2 as the EU baseline.
+- **EN 301 549** (v3.2.1) — EU, maps to WCAG 2.1 AA for web content (Clause 9). Clauses 10-12 cover documents, software, and documentation. **Watch:** the V4.x revision moves the baseline to WCAG 2.2 AA and aligns with WCAG2ICT — draft **V4.1.0** was released for review Nov 2025, with **V4.1.1** expected in 2026 and OJEU citation projected ~late 2026 — but as of mid-2026 it is not yet published/OJEU-harmonized, so **V3.2.1 remains the legally-cited version**. Confirm current status at etsi.org before treating 2.2 as the EU baseline.
 - **European Accessibility Act (EAA)** — Application date **June 28, 2025**. Makes EN 301 549 legally binding across EU member states for many products and services. Enforcement is via decentralized national market-surveillance authorities with "proportionate and dissuasive" penalties. Downstream deadlines (per Article 32): service contracts concluded before June 28, 2025 may continue **until June 28, 2030** (max 5 years); self-service terminals already in use may run to end of economic life (**max 20 years**). An accessibility statement is expected for in-scope products/services.
-- **US DOJ ADA Title II final rule** — Requires **WCAG 2.1 AA** (note: 2.1, not 2.2) for state/local government web and mobile apps, including contracted third-party content. Deadlines extended by ~1 year via 2026 interim final rule: large entities (50k+ pop.) **April 26, 2027**; small entities and special districts **April 26, 2028**. Verify exact dates against the Federal Register.
+- **US DOJ ADA Title II final rule** — Requires **WCAG 2.1 AA** (note: 2.1, not 2.2) for state/local government web and mobile apps, including contracted third-party content. Deadlines extended by ~1 year via the 2026 interim final rule (effective April 2026, ada.gov): large entities (50k+ pop.) **April 26, 2027**; small entities and special districts **April 26, 2028**. Verify exact dates against the Federal Register.
+- **US state laws** — a growing overlay on top of federal rules: e.g. **Colorado** (HB21-1110 regime, active since July 2025) and **Texas HB 5195** (state-agency website modernization). When a US jurisdiction is specified, check for state-level requirements rather than emitting one national conclusion.
 - **US HHS Section 504 rule** — Requires **WCAG 2.1 AA** for web, mobile apps, and patient portals of HHS-funded entities (hospitals, clinics, Medicare/Medicaid). Deadlines (post-2026 extension): recipients with 15+ employees **May 11, 2027**; smaller recipients **May 10, 2028**. Verify against the primary IFR.
 - **VPAT** (Voluntary Product Accessibility Template) — ITI template (current v2.5, aligned with WCAG 2.2) for Accessibility Conformance Reports (ACRs). Four editions: WCAG, 508, EU, INT (International). If compliance documentation is needed, note which VPAT sections are affected by findings. Use VPAT-compatible conformance language: **Supports**, **Partially Supports**, **Does Not Support**, **Not Applicable**, **Not Evaluated**.
 - **OpenACR** (GSA initiative) — Machine-readable YAML/JSON schema for Accessibility Conformance Reports. Maps to VPAT structure but enables programmatic comparison and search. Early adoption (GSA uses internally). GitHub: GSA/openacr. Forward-looking alternative to Word/PDF VPATs for tooling integration.
 
 ### Legal Landscape
-- ADA web accessibility lawsuits exceed 4,000+ per year in the US
+- US ADA web litigation remains heavy: ~3,100 federal Title III web suits in 2025 (+27% YoY), with a marked **shift to state courts** (CA/NY/IL statutory damages) and ~40% of federal filings pro se (often AI-drafted) — verify current-year figures before citing
 - Common targets: e-commerce, healthcare, education, financial services
 - Standard of compliance: WCAG 2.1 AA (increasingly 2.2 AA)
-- EAA enforcement creates additional EU compliance obligations from June 2025
+- **EAA enforcement is now active** (since June 28, 2025): national market-surveillance actions include French court injunctions (e.g., a June 2026 compliance order against a major retailer — single-source, verify), Dutch ACM information requests to non-EU operators, German cease-and-desist letters, Swedish PTS inspections. Pattern so far: injunctions and compliance mandates, **no confirmed collected fines yet**. Prioritize covered end-to-end journeys (e-commerce, banking, transport, communications, e-books) and conformity evidence — and note EAA compliance ≠ mechanically WCAG 2.2 (Annex I + national transposition also matter)
 - **Accessibility overlays are a litigation liability, not a remedy:** a large share of 2025 web-accessibility suits targeted sites that *had* an overlay installed, and the FTC settled deceptive "automated ADA compliance" claims for $1M (Jan 2025). Flag overlay widgets (accessiBe, UserWay, AudioEye, EqualWeb) as a finding — see pattern 151.
 
 ## Accessibility Framework Mapping
@@ -989,7 +1010,7 @@ When resuming: read `A11Y_AUDIT_STATE.md`, continue from last checkpoint, update
 
 ## Complementary Automated Testing
 
-This analysis covers patterns requiring human judgment and code-level understanding. For additional automated coverage, use [axe-core](https://github.com/dequelabs/axe-core) (currently v4.12.x — verify the latest release at audit time) as a complementary runtime tool. Recent additions: `aria-tab-name` (standard) and the WCAG 2.2 `target-size` rule (standard, gated behind the `wcag22aa` tag/opt-in). Note that `focus-appearance` (SC 2.4.13) is *not* an open-source axe-core rule — it requires manual or Deque Guided-Tests evaluation.
+This analysis covers patterns requiring human judgment and code-level understanding. For additional automated coverage, use [axe-core](https://github.com/dequelabs/axe-core) (currently v4.12.1, June 2026 — verify the latest release at audit time) as a complementary runtime tool. Recent changes: `aria-tab-name` added (standard), WCAG 2.2 `target-size` rule (standard, gated behind the `wcag22aa` tag/opt-in) with false-positive fixes for inline elements and offscreen fixed-position content, partial `ElementInternals` role support in ARIA rules, and `landmark-complementary-is-top-level` deprecated. Note that `focus-appearance` (SC 2.4.13) is *not* an open-source axe-core rule — it requires manual or Deque Guided-Tests evaluation.
 
 ### Why Both Code Analysis and Runtime Testing
 
@@ -1015,7 +1036,7 @@ Patterns in this document annotated with `[axe: rule-id]` have a corresponding a
 https://dequeuniversity.com/rules/axe/4.12/{rule-id}
 ```
 
-Example: `[axe: heading-order]` → `https://dequeuniversity.com/rules/axe/4.11/heading-order`
+Example: `[axe: heading-order]` → `https://dequeuniversity.com/rules/axe/4.12/heading-order`
 
 **Note**: axe-core rule IDs are stable across versions. When axe-core updates, only the version number in the URL path changes.
 
@@ -1051,7 +1072,7 @@ Keep these checks active in email mode:
 - **2.4.6 Headings and Labels** — descriptive headings
 - **3.1.1 Language of Page** — `lang` attribute, but **only if the HTML is a full document** (has `<html>`). Email fragments delegate this to the client's wrapper.
 - **3.1.2 Language of Parts** — `lang` on foreign-language spans
-- **2.5.5 / 2.5.8 Target Size** — interactive CTAs should have a 44×44 px hit area (Litmus / Email on Acid recommend this as email-critical)
+- **2.5.5 Target Size (Enhanced, AAA) as email best practice** — interactive CTAs should have a 44×44 px hit area (Litmus / Email on Acid recommend this as email-critical). Note: the AA requirement is SC 2.5.8 at 24×24 px — do not cite 2.5.8 as requiring 44px.
 
 ### WCAG criteria that DO NOT apply to email
 
@@ -1085,7 +1106,9 @@ Email has failure modes web pages don't. Add these checks in email mode:
 - **Animated GIFs** — no `prefers-reduced-motion` support in email; keep under 5 s and avoid rapid flashing
 - **Layout table presentation role** — deeply nested layout tables (5–10 levels in a typical Mailchimp export) cause screen readers to announce each as "table with N columns"; mandatory `role="presentation"` on every layout `<table>`
 
-### AccessLens integration contract
+### AccessLens integration contract (PROJECT-SPECIFIC APPENDIX)
+
+> ⚠️ **This subsection applies ONLY when working inside the AccessLens project** (the `/api/scan-html` service and its `A11Y-xxx` rule IDs). For any other codebase, ignore it entirely — the `A11Y-xxx` numbering is AccessLens-internal and does not map to this document's pattern numbers.
 
 The AccessLens `/api/scan-html` endpoint accepts `scan_mode: "email" | "web"` (default `"web"`). When `scan_mode="email"`:
 1. Rules in `_EMAIL_SUPPRESS_RULES` are filtered from findings (see `container/app.py`)
