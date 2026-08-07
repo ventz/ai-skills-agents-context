@@ -117,6 +117,15 @@ Tier 6: Advanced & Edge Cases
 
 ## Severity Classification
 
+Canonical one-sentence summaries — use verbatim when explaining a severity level to a user:
+
+| Severity | Summary |
+|----------|---------|
+| Critical | May entirely prevent people with a disability from using this feature. |
+| High | Creates a significant barrier that some users cannot reasonably work around. |
+| Medium | A noticeable barrier; workarounds exist for many users. |
+| Low | Minor issue; best-practice improvement. |
+
 **Critical** (Complete barrier — users cannot complete tasks):
 - Interactive elements with no keyboard access (`<div onclick>` without keyboard handler, role, or tabindex)
 - Form inputs with no accessible name (no label, aria-label, or aria-labelledby) — SC 1.3.1, 4.1.2
@@ -805,11 +814,51 @@ Scope factor:
 - Any High finding present → score capped at **79**
 - This prevents "green scores" when accessibility blockers exist
 
+**Confidence gate on caps and counts**: when findings carry a confidence value, only reasonably-confident findings should trigger a cap or count toward the impact rating. A heuristic whose confidence was reduced by context analysis (see *Finding Confidence & Provenance*) is still reported in full, but must not by itself drag a score to 49 — that turns every false positive into a failing grade and destroys trust in the number.
+
 ### Usability Impact Rating
+
+Counts below use only findings that pass the same confidence gate.
+
 - **Blocker**: Critical finding(s) exist — one or more user groups cannot complete core tasks
 - **Severe**: No Critical, but 3+ High findings — significant friction for multiple groups
 - **Moderate**: No Critical, <3 High, but Medium findings exist — usable with difficulty
 - **Minor**: Only Low findings — meets compliance, minor improvements possible
+- **None**: No findings at all — nothing detected in the scanned content
+
+Canonical one-sentence summaries — use verbatim when explaining a rating to a user:
+
+| Rating | Summary |
+|--------|---------|
+| Blocker | One or more critical issues likely prevent use by people with a disability. |
+| Severe | Multiple high-severity issues create significant barriers. |
+| Moderate | Noticeable barriers; most users can work around them. |
+| Minor | Minor or cosmetic issues; best-practice improvements. |
+| None | No issues detected. |
+
+## Finding Confidence & Provenance
+
+### Context-aware confidence adjustment
+
+Static analysis cannot see attributes or behavior added by JavaScript at runtime, so several pattern classes (overlays without visible focus management, color-alone signalling, mouse-only handlers) are inherently false-positive prone. Rather than suppressing them — which hides real issues — reduce confidence and re-label:
+
+- When mitigating evidence is found near the match, drop the finding to low confidence, change its detection type to **manual review**, and append a note to the recommendation stating exactly what mitigating evidence was found. The finding stays in the audit trail.
+- Suppress a finding entirely **only** when the full correct pattern is present — e.g. an overlay match that also carries `role="dialog"` *and* `aria-modal="true"` *and* JavaScript focus management (a focus trap, `keydown` + `Escape` handling, or a programmatic `.focus()` call).
+
+Mitigating evidence worth recognizing:
+- **Overlay / interstitial without focus management** — the element is `aria-hidden="true"` (decorative backdrop), carries a `hidden` class, has `role="dialog"` / `aria-modal="true"` nearby, or has focus-management JavaScript nearby
+- **Color alone used to convey information** — an icon class (`fa-`, `icon-`, `material-icons`, `glyphicon`), screen-reader-only text (`sr-only`, `visually-hidden`), or an `aria-label` / `title` nearby
+
+Never phrase a low-confidence finding as a confirmed violation. State what was detected, what mitigating evidence was found, and that focus trapping or equivalent non-color meaning can only be confirmed by testing the rendered page.
+
+### Finding provenance
+
+When findings are produced by more than one engine, carry two provenance fields and report them honestly — never infer or upgrade them:
+
+- **Source** — `local` (produced on the user's device; the content never left it) or `server` (the content was sent to a remote service). This is a privacy disclosure, not a quality signal.
+- **Method** — `rule` (deterministic pattern), `ai` (LLM-only finding), or `rule+ai` (a rule detection carrying an LLM-written narrative). Promote a rule finding to `rule+ai` as soon as an LLM analysis is attached to it.
+
+If a new detection path appears, add a new value rather than reusing an existing one — these badges are a trust signal about where user content went and how a conclusion was reached, and overloading them silently misleads.
 
 ## Output Format
 
@@ -823,6 +872,7 @@ Scope factor:
 - **Total Findings**: [N]
   - **Critical**: [N] | **High**: [N] | **Medium**: [N] | **Low**: [N]
 - **Detection Breakdown**: [N] Definite | [N] Likely | [N] Manual Review Needed
+- **Provenance** (when findings come from more than one engine): [N] Local | [N] Server — [N] Rule | [N] AI | [N] Rule+AI
 - **Scope**: [Files/components analyzed]
 - **Key Concerns**: [Top 2-3 issues]
 
@@ -1127,6 +1177,12 @@ The AccessLens `/api/scan-html` endpoint accepts `scan_mode: "email" | "web"` (d
 - `A11Y-001` missing lang — suppressed only when fragment (no `<html>`)
 
 Rules explicitly **kept** in email mode (common false-negative traps to avoid): `A11Y-010` image alt, `A11Y-040` aria-hidden on focusable, `A11Y-041` empty button, `A11Y-042` empty link (critical for email CTAs), `A11Y-070` heading skipped, `A11Y-074` data-table headers, `A11Y-054` small font.
+
+**Scoring, confidence, and provenance implementation** (the AccessLens realization of *Finding Confidence & Provenance* above):
+- The confidence gate is `CONFIDENCE_THRESHOLD = 0.3` in `container/scoring.py` — it applies to both the Critical/High score caps and the usability-impact counts.
+- Context-aware confidence adjustment lives in `_analyze_context()` in `container/scanner/analyzers/regex_analyzer.py`. Mitigated findings drop to confidence `0.15`, flip to `DetectionType.MANUAL_REVIEW`, and get a `[Context analysis]` note appended to the recommendation. Confidence `0.0` suppresses the finding outright — currently only for `A11Y-076` when `role="dialog"` + `aria-modal="true"` + JS focus management are all present. Recognized rules: `A11Y-076` (overlay) and `A11Y-015` (color alone).
+- Provenance is the `DetectionSource` / `DetectionMethod` enums in `container/models.py`. `scoring.score_findings()` stamps `SERVER` on every finding and promotes `RULE` → `RULE_AI` when `llm_analysis` is present (attached by `container/scanner/llm/contextual.py`). The Chrome extension stamps `local` / `rule` on its own quick checks and live DOM checks.
+- The severity and usability-impact summary sentences above are served by `GET /api/glossary` from `SEVERITY_GLOSSARY` / `USABILITY_IMPACT_GLOSSARY` in `container/models.py`. The Chrome extension fetches them on first Deep Audit and keeps an embedded fallback copy. Edit the wording in `models.py` — never in the extension — so all three surfaces stay in sync.
 
 ### Authoritative sources for email accessibility
 
