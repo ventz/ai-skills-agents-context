@@ -1,0 +1,26 @@
+# Local reference checkout of upstream Deque axe-core (own git repo, not our content)
+agents/axe-core/
+
+# Local AI assistant instructions and config
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.mcp.json
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+private/
+.private/
+
+# Session and state files
+sessions/
+.sessions/
+*.session
+
+# OS artifacts
+.DS_Store
