@@ -161,7 +161,7 @@ data = json.loads(output_text)
 result = MyPydanticModel(**data)
 ```
 
-**Model**: always `gpt-5.6-sol` (latest/greatest frontier; `gpt-5.6` is an alias for it). Don't default to older `gpt-5.x` (including `gpt-5.5`), `gpt-4o`, or `gpt-4o-mini`. Pricing, mini/nano/pro variants, and prior frontiers live in `/Users/ventz/proj/openai/README.md`.
+**Model**: always `gpt-5.6-sol` (latest/greatest frontier; `gpt-5.6` is an alias for it). Don't default to older `gpt-5.x` (including `gpt-5.5`), `gpt-4o`, or `gpt-4o-mini`. Pricing, mini/nano/pro variants, and prior frontiers live in `/Users/ventz/proj/openai/README.md`. A newer frontier model (`gpt-6-astra`) exists but is **not** our default — see the note below for why and what would have to change.
 
 **Built-in web search**: add `tools=[{"type": "web_search"}]` to the request to let GPT-5.6 search the live web (canonical tool name `web_search`; `web_search_preview` is legacy). Pairs with `reasoning.effort` for agentic, multi-step "deep research". Billed as a per-call built-in-tool surcharge on top of tokens — see the pricing page, don't hard-code. Combine with `text.format`/`json_schema` only when you need structured output *and* search; for plain research, drop the `text.format` block.
 
@@ -194,6 +194,37 @@ Rule of thumb: default to `high`; drop to `medium`, `low`, or `none` for routine
 **Env vars**: `OPENAI_API_KEY` (required), `OPENAI_MODEL` (default to `gpt-5.6-sol` when unset).
 
 **Authoritative full reference**: `/Users/ventz/proj/openai/README.md` — end-to-end examples, full pricing tables, error handling patterns, Pydantic best practices, OpenAI vs Anthropic caching comparison.
+
+## Note: `gpt-6-astra` — newer frontier, NOT our default yet
+
+OpenAI shipped **`gpt-6-astra`** (released 2026-04-30, knowledge cutoff 2026-04-30) — docs: <https://developers.openai.com/api/docs/models/gpt-6-astra>. **This agent deliberately stays on `gpt-5.6-sol` everywhere** (consults *and* SDK guidance). Do not switch to astra until the blocker below clears and Ventz says so. Findings below verified 2026-09-03.
+
+**Access status on this machine — the reason it isn't the default:**
+
+| Path | Status |
+|---|---|
+| Responses API with `OPENAI_API_KEY` | ✅ **Works** (HTTP 200) — the key does have access |
+| `codex exec -m gpt-6-astra` | ❌ 400 — `"The 'gpt-6-astra' model is not supported when using Codex with a ChatGPT account."` |
+| `codex -c preferred_auth_method="apikey"` | ❌ Same 400 — the on-disk ChatGPT auth wins; this is a **server-side auth-mode block, not a flag problem** |
+
+`codex` here authenticates via a ChatGPT account (`~/.codex/auth.json` holds OAuth tokens, not an API key), so **the CLI lane — this agent's primary lane — cannot reach astra at all.** codex 0.145.0 also has no model metadata for it (`warning: Model metadata for 'gpt-6-astra' not found`); upgrading the CLI clears that warning but does **not** lift the auth block. Rather than split the agent across two models, both lanes stay on `gpt-5.6-sol`.
+
+**To flip the default later**, all of this must be true: (a) astra reachable from `codex` — either OpenAI adds ChatGPT-account support, or codex is switched to API-key auth via `codex login --api-key "$OPENAI_API_KEY"` (**this moves billing off the ChatGPT subscription to pay-per-token — Ventz's call, never the agent's**); and (b) Ventz has approved the cost. Re-probe with:
+
+```
+codex exec -s read-only -m gpt-6-astra --skip-git-repo-check -o "$(mktemp /tmp/codex_probe.XXXXXX)" "Reply with exactly: OK" < /dev/null
+```
+
+**Verified specs, for when we do adopt it** (so this doesn't need re-researching):
+
+- **Context**: 1,050,000 tokens (922K max input / 128K max output). Single snapshot, no alias.
+- **Pricing per 1M tokens**: $10 input / $1 cached input / $12.50 cache write / $50 output — ~an order of magnitude above `gpt-5.6-sol`.
+- **⚠️ Long-context price cliff**: prompts over **272K input tokens** bill at **2x input and cache rates and 1.5x output for the entire request**, not just the overage.
+- **Reasoning effort**: `low`, `medium`, `high`, `xhigh`, `max`. **`none` is NOT supported — it 400s** (astra's floor is `low`, unlike `gpt-5.6-sol`). Verified against the live API, not just the docs.
+- **Endpoints**: Chat Completions, Responses, Batch only — no Realtime, Assistants, fine-tuning, or embeddings.
+- **Features**: streaming, structured outputs, function calling, image input, prompt caching (incl. `prompt_cache_retention="24h"`), web search, file search.
+- **Rate limits**: five usage tiers, 500–15,000 RPM / 500K–40M TPM.
+- **Rollout**: Trusted Access Program enterprises; broader API/plan access "coming soon."
 
 ## Handoff contract
 
