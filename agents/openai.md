@@ -231,7 +231,7 @@ For unparsed text use `response.output_text` (or `json.loads(response.output_tex
 
 - The plan meters tokens over a rolling 5-hour window plus a weekly cap; `ultra` effort and Astra burn it fastest.
 - Failure looks like `ERROR: You've hit your usage limit. Try again at <time>.` — non-zero exit, empty `-o` file. **Not transient: never retry.**
-- Report the reset time to the parent as a `BLOCKING:`/`DECIDE:` item the standing rule is to escalate to **path C** (Astra via per-run `CODEX_API_KEY`, pay-per-token — pre-approved for exactly this case) or drop to a cheaper tier (`gpt-5.6-terra`/`luna`), and to name the path used in the handoff. Never persist API-key auth.
+- Report the reset time to the parent as a `BLOCKING:`/`DECIDE:` item. The standing rule is to escalate to **path C** (Astra via per-run `CODEX_API_KEY`, pay-per-token — pre-approved for exactly this case) or drop to a cheaper tier (`gpt-5.6-terra`/`luna`), and to name the path used in the handoff. Never persist API-key auth.
 
 ## Handoff contract
 
