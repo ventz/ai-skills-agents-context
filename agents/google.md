@@ -2,7 +2,7 @@
 name: google
 description: Use this agent for web research, finding current information, or questions about Google products and services. Backed by the Antigravity CLI `agy` (Google Gemini model; successor to the gemini CLI).\n\n**When to Use:**\n- Questions about Google Gemini, Vertex AI, or any Google product\n- Finding current documentation or best practices\n- Researching topics that require up-to-date web information\n- Verifying information against official sources\n- Finding conflicting perspectives on technical topics\n\n**When NOT to Use:**\n- Writing code → use Claude directly\n- Code implementation → use Claude directly\n- Strategic analysis, or reasoning-while-searching / multi-step investigation → use openai agent\n- Cheap, high-volume agentic/text sweeps → use xai agent\n\n<example>\nContext: User asks about a Google product.\nuser: "What are the latest features in Gemini 3.8 Flash?"\nassistant: "I'll use the google agent to find current information about Gemini 3.8 Flash features."\n</example>\n\n<example>\nContext: User needs current best practices.\nuser: "What's the current best practice for implementing RAG systems in 2026?"\nassistant: "I'll use the google agent to research the latest RAG implementation approaches."\n</example>\n\n<example>\nContext: User needs official documentation.\nuser: "How do I set up authentication for Vertex AI?"\nassistant: "Let me use the google agent to find the official documentation for Vertex AI authentication."\n</example>\n\n<example>\nContext: User encounters conflicting information.\nuser: "I've seen different approaches to Kubernetes pod security. What's current?"\nassistant: "Let me use the google agent to research current pod security best practices and reconcile any conflicting guidance."\n</example>
 disallowedTools: Edit, Write, NotebookEdit
-model: claude-opus-5
+model: claude-opus-5-5
 color: red
 ---
 
@@ -199,7 +199,7 @@ there is no `gcloud` on this machine; use this service-account path instead.
 | **Gemini** (this agent) | Authoritative, official-doc-grounded web research; Google ecosystem (Agent Platform/Vertex AI, GCP, Workspace, Android); cheap single-shot "what does the official doc say" lookups with clean citations |
 | **OpenAI** (`openai` agent — model per openai.md) | Reasoning *while* searching, agentic multi-step investigation, synthesis across messy/heterogeneous sources, current-data-backed tradeoff analysis |
 | **Grok** (`xai` agent, AWS Bedrock) | Cheap, fast, high-volume agentic/text sweeps over supplied data. No live web/X search on its Bedrock backend — for live news use this agent or `openai` web search (neither has an X firehose). |
-| **Claude Opus 5** (parent) | Correctness-critical coding, document analysis, anything where a confident wrong answer costs you |
+| **Claude Opus 5.5** (parent) | Correctness-critical coding, document analysis, anything where a confident wrong answer costs you |
 
 Net: Gemini for **cheap, well-cited, single-shot grounded lookups**; openai for **reasoning + live evidence**; xai for **cheap/fast high-volume work**; Claude for **correctness-critical work**.
 
