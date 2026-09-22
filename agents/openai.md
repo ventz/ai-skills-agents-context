@@ -240,16 +240,16 @@ For unparsed text use `response.output_text` (or `json.loads(response.output_tex
 - **Never** persist API-key auth (`printenv OPENAI_API_KEY | codex login --with-api-key` — the old `--api-key` flag is gone): it moves every consult to pay-per-token. Per-run `CODEX_API_KEY` is the only API-key path; it is pre-approved solely as the last resort above (plan allowance exhausted, consult can't wait).
 - On API-key runs, note the models cache lists `default_service_tier: "priority"`; pass `-c service_tier="default"` unless priority processing was approved (medium confidence on the billing effect — check the pricing page).
 
-**Verified specs (2026-09-11):**
+**Verified specs (2026-09-11; re-checked against the model pages 2026-09-22):**
 
 | Model | $/1M in / cached / out | Effort (codex) | Notes |
 |---|---|---|---|
-| `gpt-6-astra` | 10 / 1 / 50 (cache write 12.50) | low…max, + `ultra` | no `none`, no `temperature`/`top_p`/`logprobs`; Responses API required for tool calling |
-| `gpt-5.6-sol` | 4 / 0.40 / 20 | low…max, + `ultra` | API default effort `medium` |
-| `gpt-5.6-terra` | 2 / 0.20 / 12 | low…max, + `ultra` | mid tier |
-| `gpt-5.6-luna` | 0.20 / 0.02 / 1.20 | low…max | cheap tier; `gpt-reserve` (hidden) is "Luna Reserve" overflow — never pass it with `-m` |
+| `gpt-6-astra` | 10 / 1 / 50 (cache write 12.50) | low…max, + `ultra` | no `none`, no `temperature`/`top_p`/`logprobs`; Responses API required for tool calling; Apr 30 2026 cutoff |
+| `gpt-5.6-sol` | 4 / 0.40 / 20 (cache write 5) | low…max, + `ultra` | API default effort `medium`; **promo price, guaranteed only through 2026-11-21** (was 5 / 30) |
+| `gpt-5.6-terra` | 2 / 0.20 / 12 (cache write 2.50) | low…max, + `ultra` | mid tier (≈ the old `-mini` tier); API effort none…max, default `medium` |
+| `gpt-5.6-luna` | 0.20 / 0.02 / 1.20 (cache write 0.25) | low…max | cheap tier (≈ the old `-nano` tier); `gpt-reserve` (hidden) is "Luna Reserve" overflow — never pass it with `-m` |
 
-- **Context:** 1,050,000 tokens on the API (128K max output) for all four; codex works in a 272K window (expandable to 872K). Prompts over **272K input tokens** bill the whole request at 2× input and 1.5× output.
+- **Context:** 1,050,000 tokens on the API (**922K max input**, 128K max output) for all four; codex works in a 272K window (expandable to 872K). Prompts over **272K input tokens** bill the whole request at 2× input and 1.5× output. GPT-5.6 knowledge cutoff: Feb 16 2026.
 - **Modalities:** text and image in, text out — no audio or video.
 - **Endpoints (Astra):** Chat Completions, Responses, Batch — no Realtime, Assistants, or fine-tuning.
 - Astra costs ~2.5× Sol per token (not an order of magnitude).
