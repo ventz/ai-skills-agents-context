@@ -198,7 +198,7 @@ there is no `gcloud` on this machine; use this service-account path instead.
 |-----------|------|
 | **Gemini** (this agent) | Authoritative, official-doc-grounded web research; Google ecosystem (Agent Platform/Vertex AI, GCP, Workspace, Android); cheap single-shot "what does the official doc say" lookups with clean citations |
 | **OpenAI** (`openai` agent — model per openai.md) | Reasoning *while* searching, agentic multi-step investigation, synthesis across messy/heterogeneous sources, current-data-backed tradeoff analysis |
-| **Grok** (`xai` agent, AWS Bedrock) | Cheap, fast, high-volume agentic/text sweeps over supplied data. No live web/X search on its Bedrock backend — for live news use this agent or `openai` web search (neither has an X firehose). |
+| **Grok** (`xai` agent, AWS Bedrock) | Cheap, fast, high-volume agentic/text sweeps over supplied data. No live data on its Bedrock backend; its Live X Lane (grok.com login, sparingly) is the only native X feed. General live news → this agent or `openai` web search. |
 | **Claude Opus 5.5** (parent) | Correctness-critical coding, document analysis, anything where a confident wrong answer costs you |
 
 Net: Gemini for **cheap, well-cited, single-shot grounded lookups**; openai for **reasoning + live evidence**; xai for **cheap/fast high-volume work**; Claude for **correctness-critical work**.
