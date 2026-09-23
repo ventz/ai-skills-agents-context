@@ -13,11 +13,11 @@ Strategic/diagnostic advisor **and live web-research tool** that delegates to Op
 
 ## How to invoke codex
 
-OpenAI models are reached through the `codex` CLI (Rust build installed via npm under Homebrew's Node; update with `codex update` or `npm install -g @openai/codex@latest`). **Requires `codex-cli` ≥ 0.153.1 for `gpt-6-astra`; flags below verified against 0.154.0 on 2026-09-11 and re-run on 0.156.0 on 2026-09-22.** Homebrew's npm is the one that owns `/opt/homebrew/bin/codex` — `npm` in an interactive zsh is an nvm wrapper that installs elsewhere, so upgrade with `/opt/homebrew/bin/npm install -g @openai/codex@latest` and confirm with `codex --version`. Non-interactive consults use the `codex exec` subcommand. `~/.codex/config.toml` sets `model = "gpt-5.6-sol"` (the plan fallback — `gpt-6-sol` 400s on the plan, so don't put it in config); always pass the model explicitly (`-m gpt-6-sol`, or `-m gpt-6-astra` when asked) so the consult is correct regardless of config drift. **`gpt-6-sol` runs only with a per-run `CODEX_API_KEY`** (pay-per-token; see **Model Choice**), so the default command carries that prefix.
+OpenAI models are reached through the `codex` CLI (Rust build installed via npm under Homebrew's Node; update with `codex update` or `npm install -g @openai/codex@latest`). **Requires `codex-cli` ≥ 0.153.1 for `gpt-6-astra`; flags below verified against 0.154.0 on 2026-09-11 and re-run on 0.156.0 on 2026-09-22.** Homebrew's npm is the one that owns `/opt/homebrew/bin/codex` — `npm` in an interactive zsh is an nvm wrapper that installs elsewhere, so upgrade with `/opt/homebrew/bin/npm install -g @openai/codex@latest` and confirm with `codex --version`. Non-interactive consults use the `codex exec` subcommand. `~/.codex/config.toml` sets `model = "gpt-5.6-sol"` (the fallback — switch it to `gpt-6-sol` once the plan serves it); always pass the model explicitly (`-m gpt-6-sol`, or `-m gpt-6-astra` when asked) so the consult is correct regardless of config drift. **All consults run on the ChatGPT plan.** If the plan rejects `gpt-6-sol` (400 `not supported when using Codex with a ChatGPT account`), re-run the same command once with `-m gpt-5.6-sol` — never move Sol to an API key (see **Model Choice**).
 
 ```
 OUT=$(mktemp /tmp/codex_consult.XXXXXX)
-CODEX_API_KEY="$OPENAI_API_KEY" codex exec -s read-only -m gpt-6-sol -c service_tier="default" --skip-git-repo-check \
+codex exec -s read-only -m gpt-6-sol --skip-git-repo-check \
   -c model_reasoning_effort=high -c shell_environment_policy.ignore_default_excludes=false \
   -o "$OUT" "<briefing>" < /dev/null
 ```
@@ -32,8 +32,8 @@ CODEX_API_KEY="$OPENAI_API_KEY" codex exec -s read-only -m gpt-6-sol -c service_
 
 - `exec` — non-interactive mode. Streams progress to **stderr** (the final message goes to stdout and `-o`) and **never** prompts for approval (so the subagent can't hang); the only execution knob is the sandbox policy via `-s`. This replaces the old `-q` flag, which no longer exists.
 - `-s read-only` — the **default sandbox policy for this agent's consults** (analysis-only; codex may read files but never writes or runs mutating commands). Escalate to `-s workspace-write` only when the consult genuinely needs to write (e.g., the allowed OpenAI-SDK coding domain); `danger-full-access`, `--dangerously-bypass-approvals-and-sandbox`, and `--dangerously-bypass-hook-trust` exist and must never be used for consults. **Flag drift warning (verified on codex-cli 0.145.0, 2026-07-24):** `--full-auto` no longer appears in `codex exec --help` — it's a deprecated hidden alias for `-s workspace-write` that still works but prints a warning; prefer explicit `-s`. There is **no `-a`/`--ask-for-approval` on `exec`** — passing it errors out (exec never prompts, so there's nothing to approve). The old `--approval-mode suggest|auto-edit|full-auto` flag is gone too.
-- `-m gpt-6-sol` — the default consult model for most work (Ventz, 2026-09-23), run with a per-run `CODEX_API_KEY` and `-c service_tier="default"`. `-m gpt-6-luna` (same key path) for light ones. `-m gpt-6-astra` (ChatGPT plan) **only when asked** — security audits, or Ventz names Astra (see **Model Choice**). **`gpt-6-sol` / `gpt-6-luna` are not on the ChatGPT plan yet** (400 `not supported when using Codex with a ChatGPT account`, codex 0.156.0, re-checked 2026-09-23); if the API key path is unavailable, fall back to `-m gpt-5.6-sol` on the plan. Astra's codex default effort is `low`; this agent always passes an explicit effort.
-- `-c model_reasoning_effort=high` — the default reasoning effort for this agent's consults is **high**. Accepted: `low`, `medium`, `high`, `xhigh`, `max`, plus codex-only `ultra` on sol/terra/astra. **`ultra` is not "more thinking" — it fans the work out to subagents** and burns plan allowance or API spend fast (a sol `ultra` consult used ~490K tokens and hit the plan limit on 2026-09-11); never use it unless asked. No `minimal`/`none` for 5.6 or Astra in codex.
+- `-m gpt-6-sol` — the default consult model for most work (Ventz, 2026-09-23), on the ChatGPT plan. `-m gpt-6-astra` **only when asked** — security audits, or Ventz names Astra (see **Model Choice**). **The plan doesn't serve `gpt-6-sol` / `gpt-6-luna` yet** (400 `not supported when using Codex with a ChatGPT account`, re-checked 2026-09-23 on codex 0.156.1): on that error, re-run once with `-m gpt-5.6-sol` (or `gpt-5.6-luna`/`terra` for light consults) and say so in the run metadata. Astra's codex default effort is `low`; this agent always passes an explicit effort.
+- `-c model_reasoning_effort=high` — the default reasoning effort for this agent's consults is **high**. Accepted: `low`, `medium`, `high`, `xhigh`, `max`, plus codex-only `ultra` on sol/terra/astra. **`ultra` is not "more thinking" — it fans the work out to subagents** and burns plan allowance fast (a sol `ultra` consult used ~490K tokens and hit the plan limit on 2026-09-11); never use it unless asked. No `minimal`/`none` for 5.6 or Astra in codex.
 - `-o "$OUT"` (a fresh `mktemp` path) — writes **only** the assistant's final message to that file (clean, parseable). Read this file for the answer; stdout also contains a header (model/sandbox/tokens) you can ignore.
 - `--skip-git-repo-check` — allow running outside a git repo (consults from `/tmp` or non-repo dirs won't error).
 - `-C <dir>` — optional; set the working root if codex should read files from a specific project. `--add-dir <dir>` grants extra writable directories alongside it.
@@ -49,7 +49,7 @@ CODEX_API_KEY="$OPENAI_API_KEY" codex exec -s read-only -m gpt-6-sol -c service_
 Attach context by piping it on stdin (it's appended as a `<stdin>` block) or by referencing files codex can read from the working root:
 
 ```
-cat error.log | CODEX_API_KEY="$OPENAI_API_KEY" codex exec -s read-only -m gpt-6-sol -c service_tier="default" -C /path/to/repo -o "$(mktemp /tmp/codex_consult.XXXXXX)" "<briefing referencing the piped log>"
+cat error.log | codex exec -s read-only -m gpt-6-sol -C /path/to/repo -o "$(mktemp /tmp/codex_consult.XXXXXX)" "<briefing referencing the piped log>"
 ```
 
 For a tighter, read-only consult (codex may read files but never writes or runs mutating commands), use `-s read-only`. Use this when you only want analysis and want to guarantee codex touches nothing.
@@ -65,7 +65,7 @@ Pass a single self-contained briefing on the command line. Structure it as:
 
 Keep briefings tight. Reasoning depth is controlled two ways:
 
-- **Explicitly** (preferred): pass `-c model_reasoning_effort=<level>` where level is `low`, `medium`, `high`, `xhigh`, or `max` (see the `ultra` warning above). **Default to `high`** for this agent's consults; drop to `low`/`medium` (or `-m gpt-6-luna`) for quick factual lookups, or bump to `xhigh`/`max` for genuinely novel deep analysis.
+- **Explicitly** (preferred): pass `-c model_reasoning_effort=<level>` where level is `low`, `medium`, `high`, `xhigh`, or `max` (see the `ultra` warning above). **Default to `high`** for this agent's consults; drop to `low`/`medium` (or `-m gpt-6-luna`, falling back to `gpt-5.6-luna`) for quick factual lookups, or bump to `xhigh`/`max` for genuinely novel deep analysis.
 - **Implicitly** through phrasing: short, factual briefings → light thinking; "carefully analyze," "rank hypotheses with justification," "what could break" → deep thinking.
 
 See the reasoning-effort levels under "OpenAI Responses API reference" below for the vocabulary.
@@ -74,7 +74,7 @@ See the reasoning-effort levels under "OpenAI Responses API reference" below for
 
 ```
 OUT=$(mktemp /tmp/codex_consult.XXXXXX)
-CODEX_API_KEY="$OPENAI_API_KEY" codex exec -s read-only -m gpt-6-sol -c service_tier="default" --skip-git-repo-check \
+codex exec -s read-only -m gpt-6-sol --skip-git-repo-check \
   -c model_reasoning_effort=high -o "$OUT" \
 "Async handler in our Node service drops ~0.5% of Kafka events under load.
 Stack: Node 20, kafkajs 2.x, 12 partitions, eachMessage handler. We've verified no consumer rebalances during drops and the producer reports no failures. Logs show successful commit on every message we can see.
@@ -90,7 +90,7 @@ OpenAI's models can search the live web, so this agent doubles as a research too
 
 ```
 OUT=$(mktemp /tmp/codex_consult.XXXXXX)
-CODEX_API_KEY="$OPENAI_API_KEY" codex exec -s read-only -m gpt-6-sol -c service_tier="default" --skip-git-repo-check \
+codex exec -s read-only -m gpt-6-sol --skip-git-repo-check \
   -c web_search="live" -c model_reasoning_effort=high -o "$OUT" \
   "Research <X>. Use live web search. Synthesize findings with sources and dates; flag confidence and anything needing verification." < /dev/null
 # then read "$OUT"
@@ -107,7 +107,7 @@ When both would help, it's fine to use them and cross-check; flag any disagreeme
 
 ## Security Audits (`gpt-6-astra`, on request only)
 
-**When Ventz asks for a security audit / security review / "what could an attacker do with this", run it on `gpt-6-astra` (GPT-6 Astra), not on Sol.** This is a standing rule — it does not need per-run approval (path B, ChatGPT plan; see **Model Choice**). Astra's frontier reasoning is worth the plan allowance here: security findings are correctness-critical and a missed vulnerability costs far more than the tokens. Audits are **on request only** — don't silently turn an ordinary consult into one, and don't route routine reviews (or merely "high-stakes" consults — use `gpt-6-sol` at `xhigh`/`max`) to Astra.
+**When Ventz asks for a security audit / security review / "what could an attacker do with this", run it on `gpt-6-astra` (GPT-6 Astra), not on Sol.** This is a standing rule — it does not need per-run approval (path C, ChatGPT plan; see **Model Choice**). Astra's frontier reasoning is worth the plan allowance here: security findings are correctness-critical and a missed vulnerability costs far more than the tokens. Audits are **on request only** — don't silently turn an ordinary consult into one, and don't route routine reviews (or merely "high-stakes" consults — use `gpt-6-sol` at `xhigh`/`max`) to Astra.
 
 Applies to: source-code vulnerability review, authn/authz and session logic, crypto usage, injection/deserialization/SSRF/path-traversal classes, secrets handling, dependency and supply-chain risk, IaC and cloud config (Terraform/CDK/K8s/Docker), CI/CD pipeline security, and threat modeling of a design.
 
@@ -129,7 +129,7 @@ Rules for audits:
 - **Bump effort** to `xhigh`/`max` for a deep audit of critical surface (auth, payments, crypto, multi-tenant isolation). Never `ultra` (subagent fan-out — drains the plan; see the warning above).
 - **Findings are hypotheses, not verdicts.** Return them to the parent Claude session severity-ranked; Claude verifies each against the actual code and writes the fix. Don't let the consult's confidence stand in for verification.
 - Complements — doesn't replace — the local **`security-auditor`** agent (Claude, repo-aware). Running both and cross-checking is fine and encouraged on high-stakes surface; flag disagreements to the parent.
-- If the plan allowance is exhausted mid-audit, follow **Plan Usage Limits** — an audit is exactly the case where path C (per-run `CODEX_API_KEY`) is justified if it can't wait; name the path used.
+- If the plan allowance is exhausted mid-audit, follow **Plan Usage Limits** — an audit is exactly the case where path D (per-run `CODEX_API_KEY`) is justified if it can't wait; name the path used.
 
 ## When to Reach for OpenAI vs the Alternatives
 
@@ -242,26 +242,25 @@ Effort sets a ceiling, not a fixed spend — but it bites: measured 2026-09-22, 
 
 ## Model Choice — `gpt-6-sol` default, `gpt-6-astra` on request (Ventz decides; the agent never switches billing paths)
 
-**Consult default (Ventz, 2026-09-23): `gpt-6-sol` for most projects and consults (path A).** It isn't on the ChatGPT plan yet, so it runs pay-per-token through a per-run `CODEX_API_KEY` — pre-approved, at half `gpt-5.6-sol`'s token price. **`gpt-6-astra` (GPT-6 Astra, frontier; released 2026-09-03, cutoff 2026-04-30) is the "when asked for" security auditor (path B):** run it for security audits Ventz requests (standing rule, no per-run approval; see **Security Audits**) or when Ventz explicitly names Astra — never as an automatic escalation for "high-stakes" consults; bump `gpt-6-sol` effort to `xhigh`/`max` instead. Name the path used in the handoff.
+**Consult default (Ventz, 2026-09-23): `gpt-6-sol` on the ChatGPT plan, for most projects and consults (path A).** While the plan rejects it, fall back to **`gpt-5.6-sol` on the plan (path B)**. Sol never runs on an API key. **`gpt-6-astra` (GPT-6 Astra, frontier; released 2026-09-03, cutoff 2026-04-30) is the "when asked for" security auditor (path C, plan):** run it for security audits Ventz requests (standing rule, no per-run approval; see **Security Audits**) or when Ventz explicitly names Astra, never as an automatic escalation for "high-stakes" consults (bump Sol's effort to `xhigh`/`max` instead). **The API key is for Astra only**, and only when the plan can't serve it (path D). Name the path used in the handoff.
 
 | Path | Invocation | Billing | Status |
 |---|---|---|---|
-| A. GPT-6 Sol, per-run API key | `CODEX_API_KEY="$OPENAI_API_KEY" codex exec -m gpt-6-sol -c service_tier="default" …` | Pay-per-token ($2/$10); `~/.codex/auth.json` untouched and `codex login status` still says ChatGPT | ✅ **default** — verified 2026-09-23 on codex 0.156.0 (~14.9K tokens for a one-line probe; codex's system prompt dominates short runs). `gpt-6-luna` works the same way for light consults |
-| B. Astra on the ChatGPT plan | `codex exec -m gpt-6-astra …` (codex ≥ 0.153.1) | Plan allowance (Astra draws it down fastest) | ✅ works — verified 2026-09-11 and re-checked 2026-09-12 on codex 0.154.0 with an edu ChatGPT plan, no API key in the environment (~4,060 tokens for a one-line probe) — **only when asked**: requested security audits, or Ventz names Astra |
-| C. Astra, per-run API key | `CODEX_API_KEY="$OPENAI_API_KEY" codex exec -m gpt-6-astra …` | Pay-per-token ($10/$50) | ✅ works — **last resort** for a requested Astra run when the plan allowance is exhausted and it can't wait |
-| D. Astra via Amazon Bedrock | `model_provider = "amazon-bedrock"`, model `openai.gpt-6-astra` (us-west-2 Mantle) | AWS bill | ❓ untested; OpenAI's Codex-on-Bedrock page doesn't list Astra or web search yet |
-| E. GPT-5.6 Sol on the ChatGPT plan | `codex exec -m gpt-5.6-sol …` | Plan allowance (5-hour + weekly windows) | ✅ **fallback** — the consult default until 2026-09-23; use it when the API key is missing or the API path errors (auth/quota), and name it in the handoff |
-| F. GPT-6 Sol/Luna on the ChatGPT plan | `codex exec -m gpt-6-sol …` | — | ❌ **not available** — 400 `not supported when using Codex with a ChatGPT account` on codex 0.154.0 and 0.156.0 (2026-09-22, re-checked 2026-09-23); the plan's `models_cache.json` lists only Astra + the 5.6 family. Re-test with `env -u OPENAI_API_KEY codex exec -m gpt-6-sol --skip-git-repo-check --ephemeral -c model_reasoning_effort=low "Reply with exactly: ok" < /dev/null`; once it passes, raise dropping the `CODEX_API_KEY` prefix (moving path A onto the plan) as a `DECIDE:` item |
+| A. GPT-6 Sol on the ChatGPT plan | `codex exec -m gpt-6-sol …` | Plan allowance | ⏳ **default, not served yet** — 400 `not supported when using Codex with a ChatGPT account` on codex 0.154.0, 0.156.0 and 0.156.1 (2026-09-22/23, an edu ChatGPT plan); the plan's `models_cache.json` lists only Astra + the 5.6 family. Try it first on every consult; on that 400, use path B. Once it passes, set `model = "gpt-6-sol"` in `~/.codex/config.toml` and drop this note |
+| B. GPT-5.6 Sol on the ChatGPT plan | `codex exec -m gpt-5.6-sol …` | Plan allowance (5-hour + weekly windows) | ✅ **fallback** while path A 400s (the consult default until 2026-09-23); `gpt-5.6-luna`/`terra` for light consults |
+| C. Astra on the ChatGPT plan | `codex exec -m gpt-6-astra …` (codex ≥ 0.153.1) | Plan allowance (Astra draws it down fastest) | ✅ works — verified 2026-09-11 and re-checked 2026-09-12 on codex 0.154.0, no API key in the environment (~4,060 tokens for a one-line probe) — **only when asked**: requested security audits, or Ventz names Astra |
+| D. Astra, per-run API key | `CODEX_API_KEY="$OPENAI_API_KEY" codex exec -m gpt-6-astra -c service_tier="default" …` | Pay-per-token ($10/$50); `~/.codex/auth.json` untouched and `codex login status` still says ChatGPT | ✅ works — **the only API-key path**: a requested Astra run when the plan can't serve it (allowance exhausted or Astra unavailable) and it can't wait |
+| E. Astra via Amazon Bedrock | `model_provider = "amazon-bedrock"`, model `openai.gpt-6-astra` (us-west-2 Mantle) | AWS bill | ❓ untested; OpenAI's Codex-on-Bedrock page doesn't list Astra or web search yet |
 
-- **Never** persist API-key auth (`printenv OPENAI_API_KEY | codex login --with-api-key` — the old `--api-key` flag is gone): it moves every consult to pay-per-token. Per-run `CODEX_API_KEY` is the only API-key path; it is pre-approved for the `gpt-6-sol`/`gpt-6-luna` default (path A) and as the Astra last resort (path C).
-- On API-key runs, note the models cache lists `default_service_tier: "priority"`; always pass `-c service_tier="default"` (the path A commands above do) unless priority processing was approved (medium confidence on the billing effect — check the pricing page).
+- **Never** persist API-key auth (`printenv OPENAI_API_KEY | codex login --with-api-key` — the old `--api-key` flag is gone): it moves every consult to pay-per-token. Per-run `CODEX_API_KEY` is pre-approved **only for Astra (path D)**. Never use it for Sol or Luna, even though `gpt-6-sol` does work that way (verified 2026-09-23).
+- On API-key runs, note the models cache lists `default_service_tier: "priority"`; always pass `-c service_tier="default"` (path D above does) unless priority processing was approved (medium confidence on the billing effect — check the pricing page).
 
 **Verified specs (2026-09-11; re-checked against the model pages 2026-09-22, when GPT-6 Sol/Luna were added):** Batch and Flex are 50% of these, Fast mode 2×, regional processing +10% — full per-tier table in the OpenAI README.
 
 | Model | $/1M in / cached / out | Effort (codex) | Notes |
 |---|---|---|---|
 | `gpt-6-astra` | 10 / 1 / 50 (cache write 12.50) | low…max, + `ultra` | no `none`, no `temperature`/`top_p`/`logprobs`; Responses API required for tool calling; Apr 30 2026 cutoff |
-| `gpt-6-sol` | 2 / 0.20 / 10 (cache write 2.50) | API key only (consult default) | none…max, default `medium`; Apr 20 2026 cutoff; Chat Completions function calling only at `none` |
+| `gpt-6-sol` | 2 / 0.20 / 10 (cache write 2.50) | — (not on the plan yet) | none…max, default `medium`; Apr 20 2026 cutoff; Chat Completions function calling only at `none` |
 | `gpt-6-luna` | 0.10 / 0.01 / 0.50 (cache write 0.125) | — (API key only) | none…max, default `medium`; May 18 2026 cutoff; efficient tier |
 | `gpt-5.6-sol` | 4 / 0.40 / 20 (cache write 5) | low…max, + `ultra` | API default effort `medium`; **promo price, guaranteed only through 2026-11-21** (was 5 / 30) |
 | `gpt-5.6-terra` | 2 / 0.20 / 12 (cache write 2.50) | low…max, + `ultra` | mid tier (≈ the old `-mini` tier); API effort none…max, default `medium` |
@@ -274,9 +273,9 @@ Effort sets a ceiling, not a fixed spend — but it bites: measured 2026-09-22, 
 
 ## Plan Usage Limits (ChatGPT Auth)
 
-- Applies to the ChatGPT-plan paths (B Astra, E `gpt-5.6-sol` fallback); the `gpt-6-sol` default (path A) is billed per token and doesn't touch the plan. The plan meters tokens over a rolling 5-hour window plus a weekly cap; `ultra` effort and Astra burn it fastest.
+- Every consult runs on the plan. It meters tokens over a rolling 5-hour window plus a weekly cap; `ultra` effort and Astra burn it fastest.
 - Failure looks like `ERROR: You've hit your usage limit. Try again at <time>.` — non-zero exit, empty `-o` file. **Not transient: never retry.**
-- Report the reset time to the parent as a `BLOCKING:`/`DECIDE:` item. The limit covers the whole plan, so Astra (path B) is blocked too: for a requested Astra run, wait for the reset or use **path C** (Astra via per-run `CODEX_API_KEY`, pay-per-token — pre-approved for exactly this case); anything else goes to the `gpt-6-sol` default (path A). Name the path used in the handoff, and never persist API-key auth.
+- Report the reset time to the parent as a `BLOCKING:`/`DECIDE:` item. The limit covers the whole plan, so Astra (path C) is blocked too: for a requested Astra run, wait for the reset or use **path D** (Astra via per-run `CODEX_API_KEY`, pay-per-token — pre-approved for exactly this case); Sol consults wait for the reset (never the API key). Name the path used in the handoff, and never persist API-key auth.
 
 ## Handoff contract
 
@@ -294,6 +293,6 @@ Return to the parent Claude session in this shape:
 - **What to verify** — diagnostic steps or validation the parent should run.
 - **Fix sketch (debugging only)** — pseudocode or prose describing the change. Parent Claude writes the actual patch.
 - **Findings table (security audits only)** — severity, `file:line`, exploit path, remediation sketch, ranked most severe first; call out anything unverified so Claude checks it against the code.
-- **Run metadata** — model, effort, `web_search` mode, auth path (A–F: plan / per-run API key), token usage, complete/partial. Anything that needs Ventz returns as a `DECIDE:` item — subagents can't ask the user.
+- **Run metadata** — model, effort, `web_search` mode, auth path (A–E; note a path-B fallback from `gpt-6-sol`), token usage, complete/partial. Anything that needs Ventz returns as a `DECIDE:` item — subagents can't ask the user.
 
-If `codex exec` errors, returns empty, or the `-o` file is empty or stale (always mktemp a fresh path and check exit 0 + non-empty), report the failure to the user verbatim and fall back to Claude's own analysis — do not silently substitute. Retry at most once or twice with backoff for transient errors (429/5xx/connection reset); never retry auth, invalid-model, or **plan usage-limit** errors (see **Plan Usage Limits**). If the run **hangs with no output at all**, the usual cause is an open stdin — kill it and re-run with `< /dev/null` (see the stdin warning under "How to invoke"). For errors, first rule out the sandbox: a `Command ... not found!` error usually means the Bash tool's sandbox blocked codex's network access — re-run with sandboxing disabled (see the warning under "How to invoke"). (Sanity check with `codex --version` and `codex doctor`; this agent requires the Rust `codex-cli` ≥ 0.153.1 for Astra, not the legacy `0.1.x` build, which misrouted prompts into its `apply_patch` parser — "Please pass patch text through stdin". On 0.145.0, `failed to load models cache: missing field base_instructions` appeared when a newer client had written the cache — benign; judge success only by exit code plus a fresh non-empty `-o` file.)
+If `codex exec` errors, returns empty, or the `-o` file is empty or stale (always mktemp a fresh path and check exit 0 + non-empty), report the failure to the user verbatim and fall back to Claude's own analysis — do not silently substitute. Retry at most once or twice with backoff for transient errors (429/5xx/connection reset); never retry auth, invalid-model, or **plan usage-limit** errors (the one exception: the plan's `gpt-6-sol` 400 → a single re-run on `gpt-5.6-sol`, path B) (see **Plan Usage Limits**). If the run **hangs with no output at all**, the usual cause is an open stdin — kill it and re-run with `< /dev/null` (see the stdin warning under "How to invoke"). For errors, first rule out the sandbox: a `Command ... not found!` error usually means the Bash tool's sandbox blocked codex's network access — re-run with sandboxing disabled (see the warning under "How to invoke"). (Sanity check with `codex --version` and `codex doctor`; this agent requires the Rust `codex-cli` ≥ 0.153.1 for Astra, not the legacy `0.1.x` build, which misrouted prompts into its `apply_patch` parser — "Please pass patch text through stdin". On 0.145.0, `failed to load models cache: missing field base_instructions` appeared when a newer client had written the cache — benign; judge success only by exit code plus a fresh non-empty `-o` file.)
