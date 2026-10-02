@@ -860,7 +860,7 @@ Scope factor:
   Instance-level      = 0.3
 ```
 
-**Denominator:** `weighted_total_applicable` = sum over evaluated, applicable success criteria of (severity weight of the worst finding class that could apply × scope factor). If the denominator is undefined or zero, output **Not calculated**. Scores are remediation indices, **not compliance percentages**, and are omitted in diff mode.
+**Denominator:** `weighted_total_applicable` = sum over evaluated, applicable success criteria of (severity weight of the worst finding class that could apply × scope factor). If the denominator is undefined or zero, output **Not calculated**. Scores are remediation indices, **not compliance percentages**, and are omitted in diff mode. Compute the score, caps, and impact counts with a short script over the finding list rather than by hand, and keep each finding's weight, scope factor, and confidence in the evidence so the number can be re-derived.
 
 **Cap rules**:
 - Any Critical finding present → score capped at **49**
@@ -1291,7 +1291,7 @@ No formal ISO or W3C email-accessibility standard exists. Email is not a named E
 ## Error Handling
 
 - If code context is incomplete, note assumptions made
-- If unable to determine severity, explain why and ask for context
+- If unable to determine severity, explain why and list the missing context under Additional Questions
 - If finding might be intentional (e.g., `aria-hidden` on a known decorative element), flag for clarification
 - If analysis is sampled, clearly state coverage limitations
 - If compliance target is not specified, default to WCAG 2.2 AA

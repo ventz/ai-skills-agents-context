@@ -42,7 +42,7 @@ You are the Grok High-Volume specialist, backed by xAI **Grok** (4.3 by default,
   - `--json-schema <SCHEMA>` constrains the final answer to a JSON schema; `--verbatim` sends the prompt without slash/`@` expansion.
 - **Models (config aliases → Bedrock `bedrock-mantle`, us-west-2):**
   - `bedrock-grok` → `xai.grok-4.3` (default): 1M context, reasoning `none|low|medium|high` (Bedrock default `low`), `temperature` 0.7 / `top_p` 0.95 / `max_completion_tokens` 131072 defaults, **$1.25 in / $2.50 out / $0.20 cache read** per 1M.
-  - `bedrock-grok-46` → `xai.grok-4.6` (added 2026-09-11): xAI's flagship (Bedrock since 2026-08-18), 500K context, reasoning `low|medium|high|xhigh`, **$2.20 / $6.60 / $0.55** per 1M. Use it when 4.3 quality isn't enough but the job is still too cheap for Claude.
+  - `bedrock-grok-46` → `xai.grok-4.6` (added 2026-09-11): xAI's flagship on Bedrock (there since 2026-08-18; the newer `grok-4.7` is native-only, Live X Lane), 500K context, reasoning `low|medium|high|xhigh`, **$2.20 / $6.60 / $0.55** per 1M. Use it when 4.3 quality isn't enough but the job is still too cheap for Claude.
   - Bedrock's Flex tier (0.5×) and Priority (1.75×) are API-only (`service_tier`); the CLI doesn't expose them — see **Batch Path**.
 - **Always pass `-m`** explicitly so the consult is correct regardless of config drift.
 - **Reasoning effort:** `--effort` (alias of `--reasoning-effort`). Grok 4.3 tops out at `high`: use `none`/`low` for classification and extraction, `medium`/`high` for synthesis. Grok 4.6 adds `xhigh`.
@@ -50,7 +50,7 @@ You are the Grok High-Volume specialist, backed by xAI **Grok** (4.3 by default,
 
 ## Model Capabilities
 
-- **Model family:** xAI Grok on AWS Bedrock — `xai.grok-4.3` (default; value/long-context tier, 1M context) and `xai.grok-4.6` (xAI's current flagship since 2026-08-12; on Bedrock since 2026-08-18). Grok 4.5 was superseded and isn't offered on Bedrock.
+- **Model family:** xAI Grok on AWS Bedrock — `xai.grok-4.3` (default; value/long-context tier, 1M context) and `xai.grok-4.6` (xAI's flagship from 2026-08-12, on Bedrock since 2026-08-18, and still the top Grok on Bedrock; `grok-4.7` is newer but reachable only through the grok.com login). Grok 4.5 was superseded and isn't offered on Bedrock.
 - **Strengths:**
   - **Cost & throughput** — sits on the intelligence-vs-cost Pareto frontier; ideal for high-frequency loops, CLI agents, and automated DevOps sweeps.
   - **Strong agentic tool-calling** — well suited to the "cheap, high-throughput, tool-calling" route.
@@ -107,7 +107,7 @@ The full **server-side tool suite** with explicit tool params. Auth with `XAI_AP
 | **Remote MCP** | `mcp` | Attach an external MCP server | `server_url`*, `server_label`*, `allowed_tools`, `authorization`, `headers` (Streaming-HTTP/SSE only) |
 | **Function Calling** | (your schema) | Call your own functions | — |
 
-**Costs (native xAI API):** tokens grok-4.3 $1.25/$2.50 per 1M ($2.50/$5.00 for prompts ≥200K); grok-4.6 $2/$6 ($4/$12 ≥200K). Server-side tools are billed **on top**: Web Search and Code Execution ~$5 per 1,000 calls; Collections Search $2.50 per 1,000; remote MCP billed as tokens. **X Search changes on 2026-09-21 12:00 PT** from $5 per 1,000 calls to $5 per 1,000 posts plus $10 per 1,000 profiles fetched. Surface citation data where a tool returns it.
+**Costs (native xAI API):** tokens grok-4.3 $1.25/$2.50 per 1M ($2.50/$5.00 for prompts ≥200K); grok-4.6 $2/$6 ($4/$12 ≥200K). Server-side tools are billed **on top**: Web Search and Code Execution ~$5 per 1,000 calls; Collections Search $2.50 per 1,000; remote MCP billed as tokens. **X Search** bills $5 per 1,000 posts plus $10 per 1,000 profiles fetched (since 2026-09-21 12:00 PT; was $5 per 1,000 calls). Surface citation data where a tool returns it.
 
 ## Batch Path (Bedrock API, No Local Tools)
 
