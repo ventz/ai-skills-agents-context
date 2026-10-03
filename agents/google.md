@@ -190,7 +190,7 @@ there is no `gcloud` on this machine; use this service-account path instead.
 - Deep code analysis (use Claude)
 - Reasoning-while-searching / multi-step agentic investigation (use the `openai` agent)
 - Image, PDF, or audio analysis (use the parent Claude session — agy print mode can't ingest media)
-- Cheap, high-volume agentic/text sweeps where quality can be "decent" (use xai agent — Grok 4.3)
+- Cheap, high-volume agentic/text sweeps where quality can be "decent" (use xai agent — Grok 4.7)
 
 ## When to Reach for Gemini vs the Alternatives
 
